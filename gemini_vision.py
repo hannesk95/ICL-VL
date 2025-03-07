@@ -4,8 +4,8 @@ import PIL
 import io
 
 if __name__ == "__main__":
-    
-    api_key = 'AIzaSyC_5kR5Q2APLc-sm8ckuHFUWQzgs_ryWPs'
+
+    api_key = "paste here"
 
     # Read image from file
     path = "curch_organ.jpg"
