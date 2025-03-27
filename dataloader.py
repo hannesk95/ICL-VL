@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 import torchvision.transforms as T
 import os
+import numpy as np
 
 # ------------------------------
 # 1. Configure Gemini API
