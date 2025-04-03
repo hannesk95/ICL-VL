@@ -10,7 +10,7 @@ sys.path.append('..')
 from src.utils import FlamingoProcessor
 from demo_utils import image_paths, clean_generation
 from transformers import GenerationConfig
-
+import numpy as np
 
 
 def main():
