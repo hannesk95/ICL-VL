@@ -20,5 +20,5 @@ def rename_images_sequentially(folder_path, prefix):
         os.rename(os.path.join(folder_path, temp_name), os.path.join(folder_path, new_name))
 
 if __name__ == "__main__":
-    rename_images_sequentially("data/positive", "Y")
+    rename_images_sequentially("data/positive", "P")
     rename_images_sequentially("data/negative", "N")

@@ -1,0 +1,133 @@
+{
+  "summary": "Used 3 positive examples and 3 negative examples.",
+  "results": [
+    {
+      "image_path": "data/test/N7.jpg",
+      "thoughts": "The MRI scan shows normal brain anatomy. The ventricles are symmetrical, and the gyri and sulci are well-defined. There is no evidence of any mass or lesion. The brain appears healthy.",
+      "answer": "No Tumor",
+      "score_tumor": 0.05,
+      "score_no_tumor": 0.95,
+      "location": null
+    },
+    {
+      "image_path": "data/test/N5.jpg",
+      "thoughts": "There is a small hyperintensity in the left parietal lobe. However, its size and appearance are not definitively characteristic of a tumor. It could be a small infarct or another benign lesion. Further evaluation with contrast enhancement would be helpful to characterize this finding.",
+      "answer": "No Tumor",
+      "score_tumor": 0.4,
+      "score_no_tumor": 0.6,
+      "location": null
+    },
+    {
+      "image_path": "data/test/P1.jpg",
+      "thoughts": "A large, well-defined mass is observed on the left side of the brain. The size and intensity suggest it is a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "left parietal region"
+    },
+    {
+      "image_path": "data/test/P4.jpg",
+      "thoughts": "There is a large, abnormal mass in the right temporal and parietal region. The mass appears to have irregular borders and is causing some distortion of the surrounding brain tissue. This is highly suspicious for a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "right temporal and parietal region"
+    },
+    {
+      "image_path": "data/test/N1.jpg",
+      "thoughts": "The MRI scan shows normal brain anatomy and no abnormal growths or lesions. The ventricles, sulci, and gyri appear within normal limits. There is no evidence of mass effect or edema.",
+      "answer": "No Tumor",
+      "score_tumor": 0.01,
+      "score_no_tumor": 0.99,
+      "location": null
+    },
+    {
+      "image_path": "data/test/N2.jpg",
+      "thoughts": "The brain structures appear symmetrical and within normal limits. I do not observe any signs of tumors.",
+      "answer": "No Tumor",
+      "score_tumor": 0.1,
+      "score_no_tumor": 0.9,
+      "location": null
+    },
+    {
+      "image_path": "data/test/P7.jpg",
+      "thoughts": "The MRI scan shows a distinct mass with surrounding edema in the right parietal region. The presence of edema and the irregular shape of the mass are indicative of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "right parietal region"
+    },
+    {
+      "image_path": "data/test/P8.jpg",
+      "thoughts": "There is a large, bright lesion visible in the right parietal region. Its size and abnormal shape suggest a possible tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "right parietal region"
+    },
+    {
+      "image_path": "data/test/N3.jpg",
+      "thoughts": "Brain structures appear normal with no abnormal growths.",
+      "answer": "No Tumor",
+      "score_tumor": 0.05,
+      "score_no_tumor": 0.95,
+      "location": null
+    },
+    {
+      "image_path": "data/test/P5.jpg",
+      "thoughts": "I observe a significant abnormal mass in the right temporal region. The mass has irregular borders and a heterogeneous appearance, suggestive of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "right temporal region"
+    },
+    {
+      "image_path": "data/test/N8.jpg",
+      "thoughts": "The MRI scan shows a distinct mass located in the right occipital lobe. The mass appears to have a well-defined border, and there may be some surrounding edema, although it is not very pronounced in this image. This is highly suggestive of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "right occipital lobe"
+    },
+    {
+      "image_path": "data/test/N4.jpg",
+      "thoughts": "Several high-intensity lesions are visible in the white matter. These appear to be periventricular and scattered throughout the brain. Although concerning, the lesions do not appear to represent a typical tumor mass. They are more likely indicative of demyelinating disease or other inflammatory or vascular processes. Further imaging and clinical correlation are needed to determine the exact etiology.",
+      "answer": "No Tumor",
+      "score_tumor": 0.15,
+      "score_no_tumor": 0.85,
+      "location": null
+    },
+    {
+      "image_path": "data/test/N6.jpg",
+      "thoughts": "Brain structures appear normal. No mass or abnormal growth is detected.",
+      "answer": "No Tumor",
+      "score_tumor": 0.1,
+      "score_no_tumor": 0.9,
+      "location": null
+    },
+    {
+      "image_path": "data/test/P3.jpg",
+      "thoughts": "There is a large abnormal mass visible in the right frontal lobe of the brain. The mass appears to be causing a mass effect, with some distortion of the surrounding brain tissue. This is highly suspicious for a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "right frontal lobe"
+    },
+    {
+      "image_path": "data/test/P2.jpg",
+      "thoughts": "Abnormal mass detected on the right side, potentially in the temporal or parietal region. The mass appears to have irregular borders and heterogeneous signal intensity, concerning for a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.9,
+      "score_no_tumor": 0.1,
+      "location": "right temporal/parietal region"
+    },
+    {
+      "image_path": "data/test/P6.jpg",
+      "thoughts": "There is a distinct, bright, and irregular mass located towards the back of the brain, likely in the occipital region. The surrounding tissue also appears somewhat distorted. This is highly suspicious for a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "occipital region"
+    }
+  ]
+}
