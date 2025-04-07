@@ -1,0 +1,53 @@
+{
+  "summary": "Used 3 positive examples and 3 negative examples.",
+  "results": [
+    {
+      "image_path": "data/test/N1.jpg",
+      "thoughts": "Brain structures appear normal with no abnormal growths.",
+      "answer": "No Tumor",
+      "score_tumor": 0.05,
+      "score_no_tumor": 0.95,
+      "location": null
+    },
+    {
+      "image_path": "data/test/N2.jpg",
+      "thoughts": "Brain structures appear normal with no abnormal growths.",
+      "answer": "No Tumor",
+      "score_tumor": 0.05,
+      "score_no_tumor": 0.95,
+      "location": null
+    },
+    {
+      "image_path": "data/test/Y3.jpg",
+      "thoughts": "Mass detected in the right temporal lobe, irregular enhancement noted.",
+      "answer": "Tumor",
+      "score_tumor": 0.95,
+      "score_no_tumor": 0.05,
+      "location": "right temporal lobe"
+    },
+    {
+      "image_path": "data/test/N3.jpg",
+      "thoughts": "Brain structures appear normal with no abnormal growths.",
+      "answer": "No Tumor",
+      "score_tumor": 0.05,
+      "score_no_tumor": 0.95,
+      "location": null
+    },
+    {
+      "image_path": "data/test/Y2.jpg",
+      "thoughts": "Mass detected in the right frontal lobe, irregular enhancement noted and mass effect observed.",
+      "answer": "Tumor",
+      "score_tumor": 0.95,
+      "score_no_tumor": 0.05,
+      "location": "right frontal lobe"
+    },
+    {
+      "image_path": "data/test/Y1.jpg",
+      "thoughts": "A large, well-defined mass is visible in the right parietal lobe, indicating the presence of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "right parietal lobe"
+    }
+  ]
+}

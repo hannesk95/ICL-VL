@@ -1,0 +1,53 @@
+{
+  "summary": "Used 0 positive examples and 0 negative examples.",
+  "results": [
+    {
+      "image_path": "data/test/N1.jpg",
+      "thoughts": "The MRI scan shows a transverse view of the brain. The brain's structure appears normal, with symmetrical hemispheres, normal sulci and gyri, and no obvious signs of mass effect or abnormal signal intensity. Ventricles appear normal in size and shape. There is no evidence of a tumor or other space-occupying lesion.",
+      "answer": "No Tumor",
+      "score_tumor": 0.1,
+      "score_no_tumor": 0.9,
+      "location": null
+    },
+    {
+      "image_path": "data/test/N2.jpg",
+      "thoughts": "The MRI scan shows a cross-sectional view of the brain. I'm looking for any abnormalities in the brain tissue, such as unusual masses or distortions. The ventricles appear to be of normal size and shape. The sulci and gyri are also within normal limits. There are no obvious signs of a tumor. The symmetry between the left and right hemispheres appears normal.",
+      "answer": "No Tumor",
+      "score_tumor": 0.1,
+      "score_no_tumor": 0.9,
+      "location": null
+    },
+    {
+      "image_path": "data/test/Y3.jpg",
+      "thoughts": "In the MRI scan, there is a significant, well-defined area of high signal intensity in the right temporal/parietal region. This area is much brighter than the surrounding brain tissue. The surrounding anatomy also appears distorted. Furthermore, there appears to be another abnormal growth at the bottom of the brain. These features suggest the presence of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.95,
+      "score_no_tumor": 0.05,
+      "location": "right temporal/parietal region"
+    },
+    {
+      "image_path": "data/test/N3.jpg",
+      "thoughts": "The MRI scan shows a transverse view of the brain. There are multiple small, bright spots scattered throughout the white matter, particularly around the ventricles. These could indicate areas of inflammation, demyelination, or other abnormalities. However, without further context or comparison to previous scans, it is difficult to definitively classify these as tumors. While the presentation is not definitively normal, it does not immediately suggest a tumor mass. Therefore, the scan is suspicious, but not definitively indicative of a tumor. It could be an inflammatory or demyelinating process, or small vessel disease.",
+      "answer": "No Tumor",
+      "score_tumor": 0.3,
+      "score_no_tumor": 0.7,
+      "location": null
+    },
+    {
+      "image_path": "data/test/Y2.jpg",
+      "thoughts": "The MRI scan shows an axial view of the brain. There is a large, abnormal mass located in the left frontal lobe. The mass appears heterogeneous with some areas of increased signal intensity, suggesting possible edema or necrosis. The mass effect is significant, causing compression of the lateral ventricle and midline shift. Based on these observations, a tumor is suspected.",
+      "answer": "Tumor",
+      "score_tumor": 0.95,
+      "score_no_tumor": 0.05,
+      "location": "left frontal lobe"
+    },
+    {
+      "image_path": "data/test/Y1.jpg",
+      "thoughts": "The MRI scan shows a large, well-defined, and intensely bright (hyperintense) lesion in the left parietal region. Its size and distinct margins raise suspicion for a tumor. The surrounding brain tissue also appears to be compressed. All these characteristics strongly suggest the presence of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.95,
+      "score_no_tumor": 0.05,
+      "location": "left parietal region"
+    }
+  ]
+}

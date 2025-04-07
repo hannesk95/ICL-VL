@@ -1,0 +1,44 @@
+[
+  {
+    "image_path": "data/test/2 no.jpeg",
+    "thoughts": "The brain structures appear symmetrical and of normal morphology. There is no evidence of abnormal masses or lesions.",
+    "answer": "No Tumor",
+    "score": 0.9,
+    "location": null
+  },
+  {
+    "image_path": "data/test/3 no.jpg",
+    "thoughts": "There are enhanced areas in the right temporal lobe. The location is irregular in shape. Thus a tumor may be present.",
+    "answer": "Tumor",
+    "score": 0.75,
+    "location": "right temporal lobe"
+  },
+  {
+    "image_path": "data/test/Y3.jpg",
+    "thoughts": "A well-defined lesion is visible in the right frontal lobe. It appears hyperintense, which is suspicious for a tumor.",
+    "answer": "Tumor",
+    "score": 0.9,
+    "location": "right frontal lobe"
+  },
+  {
+    "image_path": "data/test/Y2.jpg",
+    "thoughts": "Based on the MRI scan, there is a large lesion visible in the right frontal lobe. The lesion appears to be causing significant mass effect and edema. These features suggest the presence of a tumor.",
+    "answer": "Tumor",
+    "score": 0.95,
+    "location": "right frontal lobe"
+  },
+  {
+    "image_path": "data/test/1 no.jpeg",
+    "thoughts": "I carefully examined the MRI scan. The brain structure appears normal with no signs of tumor or abnormality.",
+    "answer": "No Tumor",
+    "score": 0.95,
+    "location": null
+  },
+  {
+    "image_path": "data/test/Y1.jpg",
+    "thoughts": "Apparent abnormal mass on the periphery of the brain. Size and signal intensity suggests a possible tumor.",
+    "answer": "Tumor",
+    "score": 0.9,
+    "location": "right parietal region"
+  }
+]

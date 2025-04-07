@@ -1,0 +1,53 @@
+{
+  "summary": "Used 3 positive examples and 3 negative examples.",
+  "results": [
+    {
+      "image_path": "data/test/N1.jpg",
+      "thoughts": "The MRI scan shows normal brain anatomy. I don't see any masses, abnormal growths or structural anamolies. Everything appears to be symmetrical and within normal limits.",
+      "answer": "No Tumor",
+      "score_tumor": 0.05,
+      "score_no_tumor": 0.95,
+      "location": null
+    },
+    {
+      "image_path": "data/test/N2.jpg",
+      "thoughts": "The MRI scan appears normal, with symmetrical brain structures and no signs of a tumor mass.",
+      "answer": "No Tumor",
+      "score_tumor": 0.1,
+      "score_no_tumor": 0.9,
+      "location": null
+    },
+    {
+      "image_path": "data/test/Y3.jpg",
+      "thoughts": "I see a bright, abnormal structure located towards the center of the brain, near what appears to be the ventricles, along with some abnormalities in the right hemisphere. The structure is too large and distinct to be considered a normal anatomical feature. It seems like a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "center of the brain, near ventricles"
+    },
+    {
+      "image_path": "data/test/N3.jpg",
+      "thoughts": "The MRI scan appears to show normal brain anatomy. The ventricles are of normal size and shape, and there are no obvious masses or lesions. The sulci and gyri are well-defined. No obvious signs of a tumor are present.",
+      "answer": "No Tumor",
+      "score_tumor": 0.1,
+      "score_no_tumor": 0.9,
+      "location": null
+    },
+    {
+      "image_path": "data/test/Y2.jpg",
+      "thoughts": "Upon examining the MRI scan, I observe a large, heterogeneous mass in the left frontal region. There is significant edema surrounding the mass, and there appears to be some compression of the lateral ventricle. These features are highly suspicious for a tumor. Therefore, I conclude a tumor is present in the left frontal lobe.",
+      "answer": "Tumor",
+      "score_tumor": 0.95,
+      "score_no_tumor": 0.05,
+      "location": "left frontal lobe"
+    },
+    {
+      "image_path": "data/test/Y1.jpg",
+      "thoughts": "There is a large, well-defined, high signal intensity lesion on the left side of the brain. Based on the size, shape, and location, this is highly suspicious for a tumor. It appears to be in the left parietal lobe.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "left parietal lobe"
+    }
+  ]
+}

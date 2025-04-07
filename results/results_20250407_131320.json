@@ -1,0 +1,44 @@
+[
+  {
+    "image_path": "data/test/2 no.jpeg",
+    "thoughts": "The brain structures in the MRI scan appear normal. I don't see any abnormal growths or structural problems. Thus, I don't see any indication of a tumor.",
+    "answer": "No Tumor",
+    "score": 0.95,
+    "location": null
+  },
+  {
+    "image_path": "data/test/3 no.jpg",
+    "thoughts": "I see some areas of slightly increased signal intensity in the right temporal lobe, indicated by the arrows. These could be related to a number of issues, including edema, inflammation or a tumor. Given that the lesions are fairly subtle, further imaging would be needed to clarify.",
+    "answer": "No Tumor",
+    "score": 0.6,
+    "location": null
+  },
+  {
+    "image_path": "data/test/Y3.jpg",
+    "thoughts": "A hyperintense lesion is visible in the right frontal lobe. This is suggestive of a tumor.",
+    "answer": "Tumor",
+    "score": 0.9,
+    "location": "right frontal lobe"
+  },
+  {
+    "image_path": "data/test/Y2.jpg",
+    "thoughts": "The MRI scan shows an abnormal mass in the right frontal lobe. The shape is irregular and appears to infiltrate the surrounding tissue. This is highly suspicious for a tumor.",
+    "answer": "Tumor",
+    "score": 0.98,
+    "location": "right frontal lobe"
+  },
+  {
+    "image_path": "data/test/1 no.jpeg",
+    "thoughts": "Brain structures appear normal with no abnormal growths.",
+    "answer": "No Tumor",
+    "score": 0.05,
+    "location": null
+  },
+  {
+    "image_path": "data/test/Y1.jpg",
+    "thoughts": "A large, well-defined mass is present in the right parietal lobe. The mass appears bright, suggesting it is a tumor. There is also a slight midline shift to the left.",
+    "answer": "Tumor",
+    "score": 0.98,
+    "location": "right parietal lobe"
+  }
+]

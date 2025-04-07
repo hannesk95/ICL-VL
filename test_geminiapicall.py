@@ -2,6 +2,7 @@ import google.generativeai as genai
 from dotenv import load_dotenv
 import os
 import re
+from PIL import Image
 
 # Load the API key
 load_dotenv()
@@ -12,11 +13,13 @@ if not GEMINI_API_KEY:
 # Configure the SDK
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Call Gemini
-def gemini_api_call(prompt):
-    model = genai.GenerativeModel('gemini-2.0-flash-lite')
-    response = model.generate_content(prompt)
+# Load image and describe it
+def describe_image(image_path, prompt="Describe this image"):
+    model = genai.GenerativeModel('gemini-2.0-flash')  # Use a model that supports multimodal input
+    with Image.open(image_path) as img:
+        response = model.generate_content([prompt, img])
     return response.text
 
-# Test
-print("Gemini Model Prediction:", gemini_api_call("What is the capital of France?"))
+# Test it with an image
+image_path = "/u/home/obt/ICL-VL/data/negative/N1.jpg"  # Replace with your actual image path
+print("Image Description:", describe_image(image_path))
