@@ -26,7 +26,10 @@ def main():
     # Load environment variables
     load_dotenv()
     os.environ["PROMPT_PATH"] = prompt_path
-
+    
+    # Prompt file
+    print(f"[INFO] Using prompt file: {os.environ['PROMPT_PATH']}")
+    
     # Configure Gemini API
     configure_gemini()
 
