@@ -9,7 +9,7 @@ def configure_gemini():
     genai.configure(api_key=api_key)
 
 def load_prompt_text():
-    path = os.getenv("PROMPT_PATH", "/u/home/obt/ICL-VL/prompts/tumor.txt")
+    path = os.getenv("PROMPT_PATH", "/u/home/obt/ICL-VL/prompts/few_shot.txt")
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
 

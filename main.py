@@ -16,12 +16,12 @@ def main():
     and evaluates model performance against ground-truth labels.
     """
 
-    num_pos_examples = 3
-    num_neg_examples = 3
-    pos_dir = "data/positive"
-    neg_dir = "data/negative"
-    test_dir = "data/test"
-    prompt_path = "prompts/tumor.txt"
+    num_pos_examples = 0
+    num_neg_examples = 0
+    pos_dir = "data/tumor/positive"
+    neg_dir = "data/tumor/negative"
+    test_dir = "data/tumor/test"
+    prompt_path = "/u/home/obt/ICL-VL/prompts/tumor/zero_shot.txt"
 
     # Load environment variables
     load_dotenv()

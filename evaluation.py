@@ -40,5 +40,5 @@ def evaluate(results_path, ground_truth_path):
 
 if __name__ == "__main__":
     results_file = "results/results_latest.json"
-    ground_truth_file = "data/test/labels.json"
+    ground_truth_file = "data/tumor/test/labels.json"
     evaluate(results_file, ground_truth_file)

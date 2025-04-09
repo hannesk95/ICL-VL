@@ -1,0 +1,133 @@
+{
+  "summary": "Used 2 positive examples and 2 negative examples.",
+  "results": [
+    {
+      "image_path": "data/test/N7.jpg",
+      "thoughts": "The brain structures appear normal with typical anatomical boundaries and uniform tissue structure. No abnormal growth or suspicious enhancement is observed.",
+      "answer": "No Tumor",
+      "score_tumor": 0.1,
+      "score_no_tumor": 0.9,
+      "location": null
+    },
+    {
+      "image_path": "data/test/N5.jpg",
+      "thoughts": "A small, abnormal lesion is visible in the right parietal region. This could indicate the presence of a tumor, although further investigation would be needed to confirm.",
+      "answer": "Tumor",
+      "score_tumor": 0.65,
+      "score_no_tumor": 0.35,
+      "location": "right parietal region"
+    },
+    {
+      "image_path": "data/test/P1.jpg",
+      "thoughts": "The scan shows a large, well-defined mass in the right parietal region. The mass is causing significant displacement of the surrounding brain tissue. This is highly suggestive of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "right parietal region"
+    },
+    {
+      "image_path": "data/test/P4.jpg",
+      "thoughts": "The MRI scan reveals a large, irregular lesion with significant contrast enhancement in the right parietal lobe. The surrounding edema and mass effect further suggest the presence of a tumor. Given the size and characteristics, a high-grade glioma should be considered.",
+      "answer": "Tumor",
+      "score_tumor": 0.97,
+      "score_no_tumor": 0.03,
+      "location": "right parietal lobe"
+    },
+    {
+      "image_path": "data/test/N1.jpg",
+      "thoughts": "The MRI scan shows normal brain anatomy with no visible masses, abnormal tissue growths, or signs of a tumor. All brain structures appear symmetrical and within normal limits.",
+      "answer": "No Tumor",
+      "score_tumor": 0.01,
+      "score_no_tumor": 0.99,
+      "location": null
+    },
+    {
+      "image_path": "data/test/N2.jpg",
+      "thoughts": "Brain structures appear normal with no abnormal growths.",
+      "answer": "No Tumor",
+      "score_tumor": 0.05,
+      "score_no_tumor": 0.95,
+      "location": null
+    },
+    {
+      "image_path": "data/test/P7.jpg",
+      "thoughts": "The scan shows a lesion in the right occipital lobe. The lesion appears to be enhanced, which is suggestive of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.93,
+      "score_no_tumor": 0.07,
+      "location": "right occipital lobe"
+    },
+    {
+      "image_path": "data/test/P8.jpg",
+      "thoughts": "The MRI scan shows a large, bright lesion in the right parietal lobe. The size and intensity of the lesion are highly suggestive of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "right parietal lobe"
+    },
+    {
+      "image_path": "data/test/N3.jpg",
+      "thoughts": "The image shows several small hyperintensities scattered throughout the brain. While these are abnormal, they do not resemble a classic tumor. They could be due to various other conditions such as white matter disease or inflammation. More investigations would be needed.",
+      "answer": "No Tumor",
+      "score_tumor": 0.3,
+      "score_no_tumor": 0.7,
+      "location": null
+    },
+    {
+      "image_path": "data/test/P5.jpg",
+      "thoughts": "The scan reveals a significant lesion with contrast enhancement in the right temporal region, suggestive of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.96,
+      "score_no_tumor": 0.04,
+      "location": "right temporal region"
+    },
+    {
+      "image_path": "data/test/N8.jpg",
+      "thoughts": "There is a distinct, well-defined lesion with a circular shape and contrast enhancement in the right occipital region. This is highly suggestive of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "right occipital region"
+    },
+    {
+      "image_path": "data/test/N4.jpg",
+      "thoughts": "There are several regions of increased signal intensity within the white matter, suggestive of lesions. However, the lesions are not clearly defined masses or tumors. The distribution and appearance are more consistent with demyelinating disease or other non-neoplastic processes.",
+      "answer": "No Tumor",
+      "score_tumor": 0.3,
+      "score_no_tumor": 0.7,
+      "location": null
+    },
+    {
+      "image_path": "data/test/N6.jpg",
+      "thoughts": "The image shows symmetrical brain structures with clear anatomical boundaries and no signs of irregular growth or lesions. The sulci and gyri are well-defined, and the ventricles appear normal in size and shape. No immediate indications of a tumor are observed.",
+      "answer": "No Tumor",
+      "score_tumor": 0.1,
+      "score_no_tumor": 0.9,
+      "location": null
+    },
+    {
+      "image_path": "data/test/P3.jpg",
+      "thoughts": "The MRI scan reveals a large, irregular mass in the right frontal lobe. The size and abnormal structure of the mass are indicative of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "right frontal lobe"
+    },
+    {
+      "image_path": "data/test/P2.jpg",
+      "thoughts": "The scan reveals an irregular lesion in the right temporal lobe. This abnormal enhancement suggests the presence of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.95,
+      "score_no_tumor": 0.05,
+      "location": "right temporal lobe"
+    },
+    {
+      "image_path": "data/test/P6.jpg",
+      "thoughts": "The scan shows a lesion with enhancement in the occipital lobe. This is indicative of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.9,
+      "score_no_tumor": 0.1,
+      "location": "occipital lobe"
+    }
+  ]
+}

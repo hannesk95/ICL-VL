@@ -1,0 +1,21 @@
+project: TumorDetection
+mode: zero_shot
+
+data:
+  image_root: ./data/tumor
+  test_labels_json: ./data/tumor/test_labels.json
+  save_path: ./Results/${project}/${mode}/
+  num_shots: 5
+  batch_size: 1
+
+model:
+  model_name: gemini-2.0-flash
+  model_kwargs:
+    temperature: 0.7
+    top_p: 0.95
+    max_output_tokens: 1024
+
+user_args:
+  prompt_path: ./Prompts/few_shot.txt
+  verbose: true
+  debug: false
