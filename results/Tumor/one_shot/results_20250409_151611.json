@@ -1,0 +1,69 @@
+{
+  "summary": "Used 1 positive examples and 1 negative examples.",
+  "results": [
+    {
+      "image_path": "./data/tumor/test/P1.jpg",
+      "thoughts": "The MRI scan shows a large, well-defined mass in the right parietal region. The mass appears to be causing significant displacement of the surrounding brain tissue. These characteristics strongly suggest the presence of a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "right parietal region"
+    },
+    {
+      "image_path": "./data/tumor/test/P4.jpg",
+      "thoughts": "A significant lesion is observed in the left parietal region, showing characteristics of a tumor. High signal intensity suggests potential edema or necrosis within the mass.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "left parietal region"
+    },
+    {
+      "image_path": "./data/tumor/test/N1.jpg",
+      "thoughts": "The brain tissue appears uniform, and the anatomical structures are well-defined. No abnormal growths or suspicious findings are detected.",
+      "answer": "No Tumor",
+      "score_tumor": 0.03,
+      "score_no_tumor": 0.97,
+      "location": null
+    },
+    {
+      "image_path": "./data/tumor/test/N2.jpg",
+      "thoughts": "The brain appears symmetrical, with normal tissue and cerebrospinal fluid distribution. No abnormal masses or lesions are observed.",
+      "answer": "No Tumor",
+      "score_tumor": 0.01,
+      "score_no_tumor": 0.99,
+      "location": null
+    },
+    {
+      "image_path": "./data/tumor/test/N3.jpg",
+      "thoughts": "The MRI scan shows some hyperintensities in the white matter, but they are diffuse and don't appear to be a mass-like lesion indicative of a tumor. It could be due to other conditions but does not have characteristics of a tumor.",
+      "answer": "No Tumor",
+      "score_tumor": 0.1,
+      "score_no_tumor": 0.9,
+      "location": null
+    },
+    {
+      "image_path": "./data/tumor/test/N4.jpg",
+      "thoughts": "Multiple, bilateral white matter lesions are present, which are not typical of a brain tumor. These lesions could be indicative of other conditions. While there are abnormalities, they do not strongly suggest a tumor.",
+      "answer": "No Tumor",
+      "score_tumor": 0.3,
+      "score_no_tumor": 0.7,
+      "location": null
+    },
+    {
+      "image_path": "./data/tumor/test/P3.jpg",
+      "thoughts": "The scan reveals a large, well-defined mass in the right frontal lobe. This abnormal growth is highly suspicious for a tumor.",
+      "answer": "Tumor",
+      "score_tumor": 0.98,
+      "score_no_tumor": 0.02,
+      "location": "right frontal lobe"
+    },
+    {
+      "image_path": "./data/tumor/test/P2.jpg",
+      "thoughts": "The MRI scan shows a large, irregular mass in the right temporal lobe. The mass has heterogeneous signal intensity, which suggests a complex composition. Based on these findings, a tumor is likely present.",
+      "answer": "Tumor",
+      "score_tumor": 0.93,
+      "score_no_tumor": 0.07,
+      "location": "right temporal lobe"
+    }
+  ]
+}

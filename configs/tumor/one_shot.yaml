@@ -1,11 +1,11 @@
 project: Tumor
-mode: zero_shot
+mode: one_shot
 
 data:
   image_root: ./data/tumor/
   test_labels_json: ./data/tumor/test_labels.json
   save_path: ./results/${project}/${mode}/
-  num_shots: 0
+  num_shots: 1
   batch_size: 1
 
 model:
@@ -16,6 +16,6 @@ model:
     max_output_tokens: 1024
 
 user_args:
-  prompt_path: ./prompts/tumor/zero_shot.txt
+  prompt_path: ./prompts/tumor/few_shot.txt
   verbose: true
   debug: false

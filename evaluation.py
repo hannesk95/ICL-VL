@@ -34,11 +34,21 @@ def evaluate(results_path, ground_truth_path):
     print("Accuracy:", acc)
 
     # Save to file
-    with open("results/eval_report.txt", "w") as f:
+    eval_dir = os.path.dirname(results_path)
+    eval_report_path = os.path.join(eval_dir, "eval_report.txt")
+    with open(eval_report_path, "w") as f:
         f.write(report)
         f.write(f"\nAccuracy: {acc:.2f}\n")
 
 if __name__ == "__main__":
-    results_file = "results/results_latest.json"
-    ground_truth_file = "data/tumor/test/labels.json"
-    evaluate(results_file, ground_truth_file)
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--results", type=str, default="results/results_latest.json", help="Path to predictions file")
+    parser.add_argument("--labels", type=str, default="data/tumor/test/labels.json", help="Path to ground-truth labels")
+    args = parser.parse_args()
+
+    print(f"[INFO] Evaluating using results: {args.results}")
+    print(f"[INFO] Ground truth labels: {args.labels}")
+
+    evaluate(args.results, args.labels)

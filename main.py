@@ -1,34 +1,39 @@
 import os
 import json
 import datetime
+import argparse
 from dotenv import load_dotenv
 from PIL import Image
 import torchvision.transforms as T
 from torch.utils.data import DataLoader
-
+from config import load_config  
 from dataset import CustomImageDataset
 from model import configure_gemini, build_gemini_prompt, gemini_api_call
 from generate_labels import generate_labels_from_prefix
 
 def main():
-    """
-    Main function that loads datasets, classifies test images with Gemini,
-    and evaluates model performance against ground-truth labels.
-    """
+    # === Load CLI arguments ===
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, default="configs/tumor/three_shot.yaml", help="Path to config YAML")
+    args = parser.parse_args()
 
-    num_pos_examples = 0
-    num_neg_examples = 0
-    pos_dir = "data/tumor/positive"
-    neg_dir = "data/tumor/negative"
-    test_dir = "data/tumor/test"
-    prompt_path = "/u/home/obt/ICL-VL/prompts/tumor/zero_shot.txt"
-
-    # Load environment variables
+    # === Load environment and config ===
     load_dotenv()
+    config = load_config(args.config)
+
+    # === Extract config values ===
+    image_root = config["data"]["image_root"]
+    pos_dir = os.path.join(image_root, "positive")
+    neg_dir = os.path.join(image_root, "negative")
+    test_dir = os.path.join(image_root, "test")
+    prompt_path = config["user_args"]["prompt_path"]
+    save_path = config["data"]["save_path"]
+    batch_size = config["data"]["batch_size"]
+    num_pos_examples = config["data"]["num_shots"]
+    num_neg_examples = config["data"]["num_shots"]
+
     os.environ["PROMPT_PATH"] = prompt_path
-    
-    # Prompt file
-    print(f"[INFO] Using prompt file: {os.environ['PROMPT_PATH']}")
+    print(f"[INFO] Using prompt file: {prompt_path}")
     
     # Configure Gemini API
     configure_gemini()
@@ -89,10 +94,10 @@ def main():
             })
 
     # Save results
-    os.makedirs("results", exist_ok=True)
+    os.makedirs(save_path, exist_ok=True)
     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-    results_path = os.path.join("results", f"results_{timestamp}.json")
-    latest_results_path = os.path.join("results", "results_latest.json")
+    results_path = os.path.join(save_path, f"results_{timestamp}.json")
+    latest_results_path = os.path.join(save_path, "results_latest.json")
 
     results_to_save = {
         "summary": f"Used {len(pos_examples)} positive examples and {len(neg_examples)} negative examples.",
@@ -115,7 +120,11 @@ def main():
     # Run evaluation
     try:
         import subprocess
-        subprocess.run(["python", "evaluation.py"], check=True)
+        subprocess.run([
+            "python", "evaluation.py",
+            "--results", latest_results_path,
+            "--labels", os.path.join(test_dir, "labels.json")
+        ], check=True)
     except Exception as e:
         print(f"[WARN] Evaluation failed: {e}")
 

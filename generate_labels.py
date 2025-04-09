@@ -24,6 +24,6 @@ def generate_labels_from_prefix(test_dir, output_path):
     print(f"[INFO] Saved to: {output_path}")
 
 if __name__ == "__main__":
-    test_dir = "data/test"
+    test_dir = "data/tumor/test"
     output_path = os.path.join(test_dir, "labels.json")
     generate_labels_from_prefix(test_dir, output_path)
