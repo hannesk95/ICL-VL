@@ -2,55 +2,63 @@ import os
 import json
 import datetime
 import argparse
+import random
 from dotenv import load_dotenv
 from PIL import Image
 import torchvision.transforms as T
 from torch.utils.data import DataLoader
-from config import load_config  
+from config import load_config
 from dataset import CustomImageDataset
 from model import configure_gemini, build_gemini_prompt, gemini_api_call
 from generate_labels import generate_labels_from_prefix
 
 def main():
-    # === Load CLI arguments ===
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="configs/tumor/three_shot.yaml", help="Path to config YAML")
+    parser.add_argument("--config", type=str, default="configs/tumor/two_shot.yaml", help="Path to config YAML")
     args = parser.parse_args()
 
-    # === Load environment and config ===
     load_dotenv()
     config = load_config(args.config)
 
-    # === Extract config values ===
     image_root = config["data"]["image_root"]
     pos_dir = os.path.join(image_root, "positive")
     neg_dir = os.path.join(image_root, "negative")
     test_dir = os.path.join(image_root, "test")
+
     prompt_path = config["user_args"]["prompt_path"]
     save_path = config["data"]["save_path"]
     batch_size = config["data"]["batch_size"]
     num_pos_examples = config["data"]["num_shots"]
     num_neg_examples = config["data"]["num_shots"]
+    
+    # NEW: get seed and randomize_few_shot
+    randomize_few_shot = config["data"].get("randomize_few_shot", False)
+    seed = config["data"].get("seed", 42) 
 
     os.environ["PROMPT_PATH"] = prompt_path
     print(f"[INFO] Using prompt file: {prompt_path}")
     
-    # Configure Gemini API
     configure_gemini()
 
-    # Define image transformation
     transform = T.Compose([
         T.ToTensor(),
     ])
 
-    # Load datasets
     pos_dataset = CustomImageDataset(root_dir=pos_dir, transform=transform)
     neg_dataset = CustomImageDataset(root_dir=neg_dir, transform=transform)
     test_dataset = CustomImageDataset(root_dir=test_dir, transform=transform)
 
-    # DataLoaders
-    pos_loader = DataLoader(pos_dataset, batch_size=1, shuffle=True)
-    neg_loader = DataLoader(neg_dataset, batch_size=1, shuffle=True)
+    # === If randomize_few_shot is True, set the seed and shuffle the dataset paths
+    if randomize_few_shot:
+        print(f"[INFO] Randomizing few-shot examples with seed={seed}")
+        random.seed(seed)
+        random.shuffle(pos_dataset.image_paths)
+        random.shuffle(neg_dataset.image_paths)
+
+    # We can keep shuffle=False on DataLoader for few-shot selection, 
+    # because we've manually shuffled the dataset lists already.
+    pos_loader = DataLoader(pos_dataset, batch_size=1, shuffle=False)
+    neg_loader = DataLoader(neg_dataset, batch_size=1, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
     # Select examples
@@ -127,7 +135,6 @@ def main():
         ], check=True)
     except Exception as e:
         print(f"[WARN] Evaluation failed: {e}")
-
 
 if __name__ == "__main__":
     main()

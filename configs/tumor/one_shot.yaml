@@ -7,6 +7,8 @@ data:
   save_path: ./results/${project}/${mode}/
   num_shots: 1
   batch_size: 1
+  randomize_few_shot: true
+  seed: 42
 
 model:
   model_name: gemini-2.0-flash
