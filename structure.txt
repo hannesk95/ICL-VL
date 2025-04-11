@@ -1,0 +1,93 @@
+├── config.py
+├── configs
+│   ├── CRC100K
+│   └── tumor
+│       ├── one_shot.yaml
+│       ├── three_shot.yaml
+│       ├── two_shot.yaml
+│       └── zero_shot.yaml
+├── data
+│   ├── CRC100K
+│   │   ├── CRC-VAL-HE-7K-png
+│   │   │   ├── ADI-TCGA-EENSRDNW.png
+│   │   │   ├── ADI-TCGA-IVLMQINC.png
+│   │   │   ├── ADI-TCGA-TWHICYLF.png
+│   │   │   ├── ADI-TCGA-VSNYDMDA.png
+│   │   │   ├── DEB-TCGA-AHQCDGMY.png
+│   │   │   ├── DEB-TCGA-DKYWVQIP.png
+│   │   │   ├── DEB-TCGA-EIIQLRRN.png
+│   │   │   ├── DEB-TCGA-VFLRIKDV.png
+│   │   │   ├── LYM-TCGA-FTVCYFDV.png
+│   │   │   ├── LYM-TCGA-IVKLLIMT.png
+│   │   │   ├── LYM-TCGA-KWWRKVQS.png
+│   │   │   ├── LYM-TCGA-MDKEPPHR.png
+│   │   │   ├── MUC-TCGA-LNNWHFAI.png
+│   │   │   ├── MUC-TCGA-VNRCQTRY.png
+│   │   │   ├── MUC-TCGA-VWLNSHTQ.png
+│   │   │   ├── MUC-TCGA-WQNVRQGV.png
+│   │   │   ├── MUS-TCGA-AQQNDSTI.png
+│   │   │   ├── MUS-TCGA-HEGPDCFA.png
+│   │   │   ├── MUS-TCGA-MNCDQHID.png
+│   │   │   ├── MUS-TCGA-YKIDGGHP.png
+│   │   │   ├── NORM-TCGA-CKFPHLVW.png
+│   │   │   ├── NORM-TCGA-CLTVRFTD.png
+│   │   │   ├── NORM-TCGA-CWFDHWAH.png
+│   │   │   ├── NORM-TCGA-INTLNRAV.png
+│   │   │   ├── STR-TCGA-HGDYLEWM.png
+│   │   │   ├── STR-TCGA-IAATGHRG.png
+│   │   │   ├── STR-TCGA-NLFWFRGN.png
+│   │   │   ├── STR-TCGA-QRKEEQKW.png
+│   │   │   ├── TUM-TCGA-DRHQMTQA.png
+│   │   │   ├── TUM-TCGA-GALLTCWV.png
+│   │   │   ├── TUM-TCGA-KECNIDCQ.png
+│   │   │   └── TUM-TCGA-NHQGDFVF.png
+│   │   └── test_samples_complete.csv
+│   └── tumor
+│       ├── all
+│       ├── negative
+│       │   ├── N10.jpg
+│       │   ├── N11.jpg
+│       ├── positive
+│       │   ├── P10.jpg
+│       │   ├── P11.jpg
+│       └── test
+│           ├── labels.json
+│           ├── N1.jpg
+│           ├── N2.jpg
+│           ├── N3.jpg
+│           ├── N4.jpg
+│           ├── P1.jpg
+│           ├── P2.jpg
+│           ├── P3.jpg
+│           └── P4.jpg
+├── dataset.py
+├── evaluation.py
+├── main.py
+├── model.py
+├── prompts
+│   ├── CRC100K
+│   │   ├── binary
+│   │   │   ├── few_shot.txt
+│   │   │   └── zero_shot.txt
+│   │   └── multiclass
+│   │       ├── few_shot.txt
+│   │       └── zero_shot.txt
+│   └── tumor
+│       ├── few_shot.txt
+│       └── zero_shot.txt
+├── results
+│   └── Tumor
+│       ├── two_shot
+│       │   ├── eval_report.txt
+│       │   ├── plots
+│       │   └── results_latest.json
+│       └── zero_shot
+│           ├── eval_report.txt
+│           ├── results_20250410_112844.json
+│           └── results_latest.json
+├── structure.txt
+├── test_flamingo.py
+├── test_geminiapicall.py
+└── with_text_embedding.py
+
+29 directories, 313 files

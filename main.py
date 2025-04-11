@@ -31,7 +31,7 @@ def main():
     num_pos_examples = config["data"]["num_shots"]
     num_neg_examples = config["data"]["num_shots"]
     
-    # NEW: get seed and randomize_few_shot
+    #get seed and randomize_few_shot
     randomize_few_shot = config["data"].get("randomize_few_shot", False)
     seed = config["data"].get("seed", 42) 
 
@@ -55,8 +55,6 @@ def main():
         random.shuffle(pos_dataset.image_paths)
         random.shuffle(neg_dataset.image_paths)
 
-    # We can keep shuffle=False on DataLoader for few-shot selection, 
-    # because we've manually shuffled the dataset lists already.
     pos_loader = DataLoader(pos_dataset, batch_size=1, shuffle=False)
     neg_loader = DataLoader(neg_dataset, batch_size=1, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
