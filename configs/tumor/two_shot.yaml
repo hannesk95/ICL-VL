@@ -2,13 +2,17 @@ project: Tumor
 mode: two_shot
 
 data:
-  image_root: ./data/tumor/
-  test_labels_json: ./data/tumor/test_labels.json
-  save_path: ./results/${project}/${mode}/
+  train_csv: "data/tumor/tumor_dataset.csv"      # CSV for positive/negative
+  test_csv: "data/tumor/tumor_test_dataset.csv"  # CSV for the test set
+  save_path: "results/Tumor/two_shot"
   num_shots: 2
   batch_size: 1
-  randomize_few_shot: true
+  randomize_few_shot: false
   seed: 42
+  num_test_images: 10  # how many test images to process
+  randomize_test_images: true     # NEW
+  test_seed: 42            
+
 
 model:
   model_name: gemini-2.0-flash
