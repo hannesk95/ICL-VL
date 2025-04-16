@@ -14,19 +14,30 @@ from model import configure_gemini, build_gemini_prompt, gemini_api_call
 def get_few_shot_samples(csv_path, transform, classification_type, label_list, num_shots,
                          randomize=False, seed=42):
     """
-    Gather few-shot examples from the training CSV.
-    Returns a dictionary mapping each label to a list of PIL images.
+    Gather few-shot examples from the training CSV and convert CSV labels from the new dataset
+    into binary labels. Mapping rules:
+      - "TUM"  -> "Tumor"
+      - All other labels (e.g., "ADI", "STR", etc.) -> "No Tumor"
+    Returns a dictionary mapping each target binary label to a list of PIL images.
     """
     dataset = CSVDataset(csv_path, transform=transform)
     from collections import defaultdict
     label_to_indices = defaultdict(list)
+    
+    # Iterate through the dataset and map the CSV label to binary labels
     for idx in range(len(dataset)):
-        _, _, lbl = dataset[idx]
-        label_to_indices[lbl].append(idx)
+        _, _, csv_label = dataset[idx]
+        csv_label = csv_label.strip()  # Remove any extra whitespace
+        # Map only "TUM" to "Tumor"; every other label becomes "No Tumor"
+        mapped_label = "Tumor" if csv_label == "TUM" else "No Tumor"
+        label_to_indices[mapped_label].append(idx)
+        
     if randomize:
         random.seed(seed)
         for lbl in label_to_indices:
             random.shuffle(label_to_indices[lbl])
+            
+    # For each label in label_list (expected to be ["Tumor", "No Tumor"]), get a few-shot sample
     few_shot_dict = {}
     for lbl in label_list:
         indices = label_to_indices.get(lbl, [])
@@ -55,7 +66,7 @@ def auto_generate_labels_if_needed(config):
 def main():
     # 1. Load environment and configuration
     load_dotenv()
-    config_path = "configs/tumor/one_shot.yaml"  # update as needed
+    config_path = "configs/CRC100K/one_shot.yaml"  # update as needed
     config = load_config(config_path)
 
     train_csv = config["data"]["train_csv"]
