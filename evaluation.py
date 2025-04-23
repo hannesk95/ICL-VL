@@ -1,77 +1,50 @@
-# evaluation.py
 import json
-import os
 import argparse
+from collections import defaultdict
 from sklearn.metrics import classification_report, accuracy_score
-import matplotlib.pyplot as plt
 
-def load_ground_truth(label_path):
-    with open(label_path, "r") as f:
-        return json.load(f)
-
-def load_predictions(results_path, classification_type):
+def evaluate(results_path, labels_path):
     with open(results_path, "r") as f:
-        data = json.load(f)
-    results = data.get("results", [])
-    predictions = {}
-    for entry in results:
-        file_name = os.path.basename(entry["image_path"])
-        if classification_type == "binary":
-            predictions[file_name] = {
-                "answer": entry.get("answer", "Unknown"),
-                "score_tumor": entry.get("score_tumor", 0.5)
-            }
-        else:
-            predictions[file_name] = {
-                "answer": entry.get("answer", "Unknown"),
-                "score": entry.get("score", 0.5)
-            }
-    return predictions
+        results_data = json.load(f)
+        results = results_data["results"]
 
-def evaluate(results_path, ground_truth_path, classification_type):
-    ground_truth = load_ground_truth(ground_truth_path)
-    predictions = load_predictions(results_path, classification_type)
+    with open(labels_path, "r") as f:
+        labels = json.load(f)
 
-    y_true_str = []
-    y_pred_str = []
+    y_true = []
+    y_pred = []
 
-    if classification_type == "binary":
-        for fname, true_label in ground_truth.items():
-            pred_data = predictions.get(fname, {"answer": "Unknown", "score_tumor": 0.5})
-            y_true_str.append(true_label)
-            y_pred_str.append(pred_data["answer"])
-        report = classification_report(y_true_str, y_pred_str, labels=["Tumor", "No Tumor"])
-        print("\n=== Binary Classification Report ===")
-        print(report)
-        acc = accuracy_score(y_true_str, y_pred_str)
-        print("Accuracy:", acc)
-    else:
-        possible_labels = list(set(ground_truth.values()))
-        for fname, true_label in ground_truth.items():
-            pred_data = predictions.get(fname, {"answer": "Unknown", "score": 0.5})
-            y_true_str.append(true_label)
-            y_pred_str.append(pred_data["answer"])
-        report = classification_report(y_true_str, y_pred_str, labels=possible_labels)
-        print("\n=== Multi-class Classification Report ===")
-        print(report)
-        acc = accuracy_score(y_true_str, y_pred_str)
-        print("Accuracy:", acc)
-    eval_dir = os.path.dirname(results_path)
-    eval_report_path = os.path.join(eval_dir, "eval_report.txt")
-    with open(eval_report_path, "w") as f:
-        f.write(report)
-        f.write(f"\nAccuracy: {acc:.4f}\n")
-    print(f"[INFO] Saved evaluation report to {eval_report_path}")
+    for res in results:
+        fname = res["image_path"].split("/")[-1]
+        true_label = labels.get(fname, "Unknown")
+        pred_label = res["answer"]
+        y_true.append(true_label)
+        y_pred.append(pred_label)
+
+    print("Classification Report:\n")
+    print(classification_report(y_true, y_pred, zero_division=0))
+
+    # ✅ Overall Accuracy
+    accuracy = accuracy_score(y_true, y_pred)
+    print(f"\nOverall Accuracy: {accuracy * 100:.2f}%")
+
+    # ✅ Per-Class Accuracy
+    class_correct = defaultdict(int)
+    class_total = defaultdict(int)
+    for true, pred in zip(y_true, y_pred):
+        class_total[true] += 1
+        if true == pred:
+            class_correct[true] += 1
+
+    print("\nPer-Class Accuracy:")
+    for cls in sorted(class_total.keys()):
+        acc = class_correct[cls] / class_total[cls] if class_total[cls] > 0 else 0.0
+        print(f"  {cls}: {acc * 100:.2f}% ({class_correct[cls]}/{class_total[cls]})")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--results", type=str, default="results/results_latest.json",
-                        help="Path to predictions JSON file")
-    parser.add_argument("--labels", type=str, default="data/tumor/test/labels.json",
-                        help="Path to ground truth JSON file")
-    parser.add_argument("--classification_type", type=str, default="binary")
+    parser = argparse.ArgumentParser(description="Evaluate classification results")
+    parser.add_argument("--results", required=True, help="Path to the JSON results file")
+    parser.add_argument("--labels", required=True, help="Path to the ground truth labels JSON file")
+
     args = parser.parse_args()
-    print(f"[INFO] Evaluating with results: {args.results}")
-    print(f"[INFO] Ground truth labels: {args.labels}")
-    print(f"[INFO] Classification type: {args.classification_type}")
-    evaluate(args.results, args.labels, classification_type=args.classification_type)
+    evaluate(args.results, args.labels)

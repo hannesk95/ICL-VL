@@ -1,0 +1,40 @@
+project: CRC100K
+mode: one_shot
+classification_type: multiclass
+
+data:
+  train_csv: "data/CRC100K/multiclass/CRC100K_dataset.csv"
+  test_csv: "data/CRC100K/multiclass/CRC100K_test_dataset.csv"
+  save_path: ./results/${project}/${classification_type}/${mode}/
+  num_shots: 10
+  batch_size: 1
+  randomize_few_shot: false
+  seed: 42
+  num_test_images: 16
+  randomize_test_images: true
+  test_seed: 42
+  labels_path: "data/CRC100K/multiclass/labels.json"
+
+model:
+  model_name: gemini-2.0-flash
+  model_kwargs:
+    temperature: 0.7
+    top_p: 0.95
+    max_output_tokens: 1024
+
+user_args:
+  prompt_path: "./prompts/CRC100K/multiclass/few_shot.txt"
+  verbose: true
+  debug: false
+
+classification:
+  type: ${classification_type} 
+  labels:
+    - Adipose
+    - Debris
+    - Lymphocytes
+    - Mucus
+    - Smooth Muscle
+    - Normal Colon Mucosa
+    - Cancer-Associated Stroma
+    - Colorectal Adenocarcinoma Epithelium

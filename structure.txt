@@ -10,296 +10,29 @@
 │       ├── two_shot.yaml
 │       └── zero_shot.yaml
 ├── create_csv.py
+├── create_plots.py
 ├── data
 │   ├── CRC100K
 │   │   ├── all
-│   │   │   ├── ADI-TCGA-EENSRDNW.png
-│   │   │   ├── ADI-TCGA-IVLMQINC.png
-│   │   │   ├── ADI-TCGA-TWHICYLF.png
-│   │   │   ├── ADI-TCGA-VSNYDMDA.png
-│   │   │   ├── CRC100K_all_dataset.csv
-│   │   │   ├── DEB-TCGA-AHQCDGMY.png
-│   │   │   ├── DEB-TCGA-DKYWVQIP.png
-│   │   │   ├── DEB-TCGA-EIIQLRRN.png
-│   │   │   ├── DEB-TCGA-VFLRIKDV.png
-│   │   │   ├── LYM-TCGA-FTVCYFDV.png
-│   │   │   ├── LYM-TCGA-IVKLLIMT.png
-│   │   │   ├── LYM-TCGA-KWWRKVQS.png
-│   │   │   ├── LYM-TCGA-MDKEPPHR.png
-│   │   │   ├── MUC-TCGA-LNNWHFAI.png
-│   │   │   ├── MUC-TCGA-VNRCQTRY.png
-│   │   │   ├── MUC-TCGA-VWLNSHTQ.png
-│   │   │   ├── MUC-TCGA-WQNVRQGV.png
-│   │   │   ├── MUS-TCGA-AQQNDSTI.png
-│   │   │   ├── MUS-TCGA-HEGPDCFA.png
-│   │   │   ├── MUS-TCGA-MNCDQHID.png
-│   │   │   ├── MUS-TCGA-YKIDGGHP.png
-│   │   │   ├── NORM-TCGA-CKFPHLVW.png
-│   │   │   ├── NORM-TCGA-CLTVRFTD.png
-│   │   │   ├── NORM-TCGA-CWFDHWAH.png
-│   │   │   ├── NORM-TCGA-INTLNRAV.png
-│   │   │   ├── STR-TCGA-HGDYLEWM.png
-│   │   │   ├── STR-TCGA-IAATGHRG.png
-│   │   │   ├── STR-TCGA-NLFWFRGN.png
-│   │   │   ├── STR-TCGA-QRKEEQKW.png
-│   │   │   ├── TUM-TCGA-DRHQMTQA.png
-│   │   │   ├── TUM-TCGA-GALLTCWV.png
-│   │   │   ├── TUM-TCGA-KECNIDCQ.png
-│   │   │   └── TUM-TCGA-NHQGDFVF.png
 │   │   ├── binary
-│   │   │   ├── CRC100K_dataset.csv
-│   │   │   └── CRC100K_test_dataset.csv
 │   │   └── multiclass
+│   ├── NCT-CRC-HE-100K
+│   │   └── NCT-CRC-HE-100K-png
 │   └── tumor
 │       ├── all
-│       │   ├── N10.jpg
-│       │   ├── N11.jpg
-│       │   ├── N12.jpg
-│       │   ├── N13.jpg
-│       │   ├── N14.jpg
-│       │   ├── N15.jpg
-│       │   ├── N16.jpg
-│       │   ├── N17.jpg
-│       │   ├── N18.jpg
-│       │   ├── N19.jpg
-│       │   ├── N1.jpg
-│       │   ├── N20.jpg
-│       │   ├── N21.jpg
-│       │   ├── N22.jpg
-│       │   ├── N23.jpg
-│       │   ├── N24.jpg
-│       │   ├── N25.jpg
-│       │   ├── N26.jpg
-│       │   ├── N27.jpg
-│       │   ├── N28.jpg
-│       │   ├── N29.jpg
-│       │   ├── N2.jpg
-│       │   ├── N30.jpg
-│       │   ├── N31.jpg
-│       │   ├── N32.jpg
-│       │   ├── N33.jpg
-│       │   ├── N34.jpg
-│       │   ├── N35.jpg
-│       │   ├── N36.jpg
-│       │   ├── N37.jpg
-│       │   ├── N38.jpg
-│       │   ├── N39.jpg
-│       │   ├── N3.jpg
-│       │   ├── N40.jpg
-│       │   ├── N41.jpg
-│       │   ├── N42.jpg
-│       │   ├── N43.jpg
-│       │   ├── N44.jpg
-│       │   ├── N45.jpg
-│       │   ├── N46.jpg
-│       │   ├── N47.jpg
-│       │   ├── N48.jpg
-│       │   ├── N49.jpg
-│       │   ├── N4.jpg
-│       │   ├── N50.jpg
-│       │   ├── N51.jpg
-│       │   ├── N52.jpg
-│       │   ├── N53.jpg
-│       │   ├── N54.jpg
-│       │   ├── N55.jpg
-│       │   ├── N56.jpg
-│       │   ├── N57.jpg
-│       │   ├── N58.jpg
-│       │   ├── N59.jpg
-│       │   ├── N5.jpg
-│       │   ├── N60.jpg
-│       │   ├── N61.jpg
-│       │   ├── N62.jpg
-│       │   ├── N63.jpg
-│       │   ├── N64.jpg
-│       │   ├── N65.jpg
-│       │   ├── N66.jpg
-│       │   ├── N67.jpg
-│       │   ├── N68.jpg
-│       │   ├── N69.jpg
-│       │   ├── N6.jpg
-│       │   ├── N70.jpg
-│       │   ├── N71.jpg
-│       │   ├── N72.jpg
-│       │   ├── N73.jpg
-│       │   ├── N74.jpg
-│       │   ├── N7.jpg
-│       │   ├── N8.jpg
-│       │   ├── N9.jpg
-│       │   ├── P10.jpg
-│       │   ├── P11.jpg
-│       │   ├── P12.jpg
-│       │   ├── P13.jpg
-│       │   ├── P14.jpg
-│       │   ├── P15.jpg
-│       │   ├── P16.jpg
-│       │   ├── P17.jpg
-│       │   ├── P18.jpg
-│       │   ├── P19.jpg
-│       │   ├── P1.jpg
-│       │   ├── P20.jpg
-│       │   ├── P21.jpg
-│       │   ├── P22.jpg
-│       │   ├── P23.jpg
-│       │   ├── P24.jpg
-│       │   ├── P25.jpg
-│       │   ├── P26.jpg
-│       │   ├── P27.jpg
-│       │   ├── P28.jpg
-│       │   ├── P29.jpg
-│       │   ├── P2.jpg
-│       │   ├── P30.jpg
-│       │   ├── P31.jpg
-│       │   ├── P32.jpg
-│       │   ├── P33.jpg
-│       │   ├── P34.jpg
-│       │   ├── P35.jpg
-│       │   ├── P36.jpg
-│       │   ├── P37.jpg
-│       │   ├── P38.jpg
-│       │   ├── P39.jpg
-│       │   ├── P3.jpg
-│       │   ├── P40.jpg
-│       │   ├── P41.jpg
-│       │   ├── P42.jpg
-│       │   ├── P43.jpg
-│       │   ├── P44.jpg
-│       │   ├── P45.jpg
-│       │   ├── P46.jpg
-│       │   ├── P47.jpg
-│       │   ├── P48.jpg
-│       │   ├── P4.jpg
-│       │   ├── P5.jpg
-│       │   ├── P6.jpg
-│       │   ├── P7.jpg
-│       │   ├── P8.jpg
-│       │   ├── P9.jpg
-│       │   └── tumor_all_dataset.csv
 │       ├── labels.json
 │       ├── negative
-│       │   ├── N10.jpg
-│       │   ├── N11.jpg
-│       │   ├── N12.jpg
-│       │   ├── N13.jpg
-│       │   ├── N14.jpg
-│       │   ├── N15.jpg
-│       │   ├── N16.jpg
-│       │   ├── N17.jpg
-│       │   ├── N18.jpg
-│       │   ├── N19.jpg
-│       │   ├── N20.jpg
-│       │   ├── N21.jpg
-│       │   ├── N22.jpg
-│       │   ├── N23.jpg
-│       │   ├── N24.jpg
-│       │   ├── N25.jpg
-│       │   ├── N26.jpg
-│       │   ├── N27.jpg
-│       │   ├── N28.jpg
-│       │   ├── N29.jpg
-│       │   ├── N30.jpg
-│       │   ├── N31.jpg
-│       │   ├── N32.jpg
-│       │   ├── N33.jpg
-│       │   ├── N34.jpg
-│       │   ├── N35.jpg
-│       │   ├── N36.jpg
-│       │   ├── N37.jpg
-│       │   ├── N38.jpg
-│       │   ├── N39.jpg
-│       │   ├── N40.jpg
-│       │   ├── N41.jpg
-│       │   ├── N42.jpg
-│       │   ├── N43.jpg
-│       │   ├── N44.jpg
-│       │   ├── N45.jpg
-│       │   ├── N46.jpg
-│       │   ├── N47.jpg
-│       │   ├── N48.jpg
-│       │   ├── N49.jpg
-│       │   ├── N50.jpg
-│       │   ├── N51.jpg
-│       │   ├── N52.jpg
-│       │   ├── N53.jpg
-│       │   ├── N54.jpg
-│       │   ├── N55.jpg
-│       │   ├── N56.jpg
-│       │   ├── N57.jpg
-│       │   ├── N58.jpg
-│       │   ├── N59.jpg
-│       │   ├── N60.jpg
-│       │   ├── N61.jpg
-│       │   ├── N62.jpg
-│       │   ├── N63.jpg
-│       │   ├── N64.jpg
-│       │   ├── N65.jpg
-│       │   ├── N66.jpg
-│       │   ├── N67.jpg
-│       │   ├── N68.jpg
-│       │   ├── N69.jpg
-│       │   ├── N70.jpg
-│       │   ├── N71.jpg
-│       │   ├── N72.jpg
-│       │   ├── N73.jpg
-│       │   ├── N74.jpg
-│       │   └── N9.jpg
 │       ├── positive
-│       │   ├── P10.jpg
-│       │   ├── P11.jpg
-│       │   ├── P12.jpg
-│       │   ├── P13.jpg
-│       │   ├── P14.jpg
-│       │   ├── P15.jpg
-│       │   ├── P16.jpg
-│       │   ├── P17.jpg
-│       │   ├── P18.jpg
-│       │   ├── P19.jpg
-│       │   ├── P20.jpg
-│       │   ├── P21.jpg
-│       │   ├── P22.jpg
-│       │   ├── P23.jpg
-│       │   ├── P24.jpg
-│       │   ├── P25.jpg
-│       │   ├── P26.jpg
-│       │   ├── P27.jpg
-│       │   ├── P28.jpg
-│       │   ├── P29.jpg
-│       │   ├── P30.jpg
-│       │   ├── P31.jpg
-│       │   ├── P32.jpg
-│       │   ├── P33.jpg
-│       │   ├── P34.jpg
-│       │   ├── P35.jpg
-│       │   ├── P36.jpg
-│       │   ├── P37.jpg
-│       │   ├── P38.jpg
-│       │   ├── P39.jpg
-│       │   ├── P40.jpg
-│       │   ├── P41.jpg
-│       │   ├── P42.jpg
-│       │   ├── P43.jpg
-│       │   ├── P44.jpg
-│       │   ├── P45.jpg
-│       │   ├── P46.jpg
-│       │   ├── P47.jpg
-│       │   ├── P48.jpg
-│       │   └── P9.jpg
 │       ├── test
-│       │   ├── labels.json
-│       │   ├── N1.jpg
-│       │   ├── N2.jpg
-│       │   ├── N3.jpg
-│       │   ├── N4.jpg
-│       │   ├── P1.jpg
-│       │   ├── P2.jpg
-│       │   ├── P3.jpg
-│       │   └── P4.jpg
 │       ├── tumor_dataset.csv
 │       └── tumor_test_dataset.csv
 ├── dataset.py
 ├── dinov2.py
 ├── evaluation.py
-├── generate_labels.py
+├── few_shot_accuracy.png
+├── generate_image_csv.py
+├── generate_labels_binary_CRC100K.py
+├── generate_labels_tumor.py
 ├── icl
 │   ├── bin
 │   │   ├── python -> python3
@@ -308,7 +41,6 @@
 │   ├── include
 │   ├── lib
 │   │   └── python3.10
-│   │       └── site-packages
 │   ├── lib64 -> lib
 │   └── pyvenv.cfg
 ├── main.py
@@ -317,11 +49,7 @@
 ├── prompts
 │   ├── CRC100K
 │   │   ├── binary
-│   │   │   ├── few_shot.txt
-│   │   │   └── zero_shot.txt
 │   │   └── multiclass
-│   │       ├── few_shot.txt
-│   │       └── zero_shot.txt
 │   └── tumor
 │       ├── 1.txt
 │       ├── few_shot.txt
@@ -338,33 +66,11 @@
 ├── results
 │   ├── CRC100K
 │   │   └── one_shot
-│   │       ├── eval_report.txt
-│   │       ├── labels_filtered.json
-│   │       ├── results_20250414_131134.json
-│   │       └── results_latest.json
-│   └── Tumor
-│       ├── two_shot
-│       │   ├── eval_report.txt
-│       │   ├── labels_filtered.json
-│       │   ├── plots
-│       │   ├── results_20250410_113101.json
-│       │   ├── results_20250414_111644.json
-│       │   ├── results_20250414_111913.json
-│       │   ├── results_20250414_113327.json
-│       │   ├── results_20250414_114443.json
-│       │   ├── results_20250414_114641.json
-│       │   ├── results_20250414_115239.json
-│       │   ├── results_20250414_115448.json
-│       │   ├── results_20250414_115825.json
-│       │   └── results_latest.json
-│       └── zero_shot
-│           ├── eval_report.txt
-│           ├── results_20250410_111535.json
-│           ├── results_20250410_112844.json
-│           └── results_latest.json
+│   └── tumor
+│       └── one_shot
 ├── structure.txt
 ├── test_flamingo.py
 ├── test_geminiapicall.py
 └── with_text_embedding.py
 
-33 directories, 334 files
+32 directories, 41 files
