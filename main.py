@@ -54,7 +54,7 @@ def get_few_shot_samples(csv_path, transform, classification_type, label_list, n
 
 def main():
     load_dotenv()
-    config = load_config("configs/CRC100K/binary/one_shot.yaml")
+    config = load_config("configs/CRC100K/multiclass/one_shot.yaml")
 
     train_csv, test_csv, save_path = config["data"]["train_csv"], config["data"]["test_csv"], config["data"]["save_path"]
     prompt_path = config["user_args"]["prompt_path"]
