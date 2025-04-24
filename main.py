@@ -66,7 +66,7 @@ def get_few_shot_samples(
         for cidx in indices:
             img_tensor, img_path, _ = dataset[cidx]
             img = T.ToPILImage()(img_tensor)
-            items.append((img, img_path))            # keep the path!
+            items.append((img, img_path))            
         few_shot_dict[lbl] = items
 
     return few_shot_dict

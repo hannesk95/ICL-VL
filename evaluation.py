@@ -17,8 +17,8 @@ from sklearn.metrics import (
 import numpy as np
 import matplotlib
 
-matplotlib.use("Agg")                        # head-less backend
-import matplotlib.pyplot as plt              # noqa: E402
+matplotlib.use("Agg")                        
+import matplotlib.pyplot as plt              
 
 
 # ----------------------------------------------------------------------
@@ -143,7 +143,7 @@ def evaluate(results_path, labels_path):
     cm_labels = labels_set
     cm = confusion_matrix(y_true, y_pred, labels=cm_labels)
 
-    base = os.path.splitext(os.path.basename(results_path))[0]  # e.g. results_20250424_101045
+    base = os.path.splitext(os.path.basename(results_path))[0] 
     out_dir = os.path.dirname(results_path)
 
     cm_png = os.path.join(out_dir, f"{base}_cm.png")
@@ -174,7 +174,7 @@ def evaluate(results_path, labels_path):
         )
 
     # ---------- summary ----------
-    print("\nArtefacts saved to:")
+    print("\Results saved to:")
     print(f"  • {cm_png}")
     print(f"  • {cm_json}")
     if roc_saved:
