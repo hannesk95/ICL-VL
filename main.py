@@ -69,7 +69,7 @@ def get_few_shot_samples(
 
 def main():
     load_dotenv()
-    config = load_config("configs/tumor/five_shot.yaml")
+    config = load_config("configs/CRC100K/binary/five_shot.yaml")
 
     train_csv   = config["data"]["train_csv"]
     test_csv    = config["data"]["test_csv"]

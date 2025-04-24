@@ -23,7 +23,7 @@ def generate_binary_labels_from_csv(csv_path, output_path):
             orig_label = row["label"].strip()  # e.g., "TUM", "ADI", "STR", etc.
             
             # Map only "TUM" to "Tumor"; all other values to "No Tumor"
-            if orig_label == "TUM-":
+            if orig_label == "TUM":
                 binary_label = "Tumor"
             else:
                 binary_label = "No Tumor"

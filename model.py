@@ -1,6 +1,42 @@
 import os
 import json
 import google.generativeai as genai
+# --- rate-limiter with optional prints --------------------------------------
+import os, time
+from collections import deque
+from functools import wraps
+from threading import Lock
+
+_MAX_CALLS = 16          # tokens in a rolling window
+_PERIOD    = 60.0        # seconds
+_CALLS     = deque()     # timestamps of recent calls
+_LOCK      = Lock()
+
+# toggle with env-var or constant
+RL_VERBOSE = os.getenv("RL_VERBOSE", "0") == "1"
+
+def _acquire_token():
+    """Block until a token is free; optionally print waiting stats."""
+    while True:
+        with _LOCK:
+            now = time.time()
+            # drop calls older than 60 s
+            while _CALLS and now - _CALLS[0] > _PERIOD:
+                _CALLS.popleft()
+
+            if len(_CALLS) < _MAX_CALLS:
+                _CALLS.append(now)
+                if RL_VERBOSE:
+                    remaining = _MAX_CALLS - len(_CALLS)
+                    print(f"[rate-limit] token OK → {remaining} left")
+                return                      # proceed!
+
+            # otherwise we must wait
+            wait = _PERIOD - (now - _CALLS[0]) + 0.01
+            if RL_VERBOSE:
+                print(f"[rate-limit] bucket empty; sleeping {wait:.2f} s")
+
+        time.sleep(wait)                    # outside the lock
 
 
 def configure_gemini():
@@ -117,7 +153,15 @@ def build_gemini_prompt(few_shot_samples, test_image, classification_type="binar
 
     return contents
 
+def _rate_limited(fn):
+    @wraps(fn)
+    def wrapper(*a, **kw):
+        _acquire_token()
+        return fn(*a, **kw)
+    return wrapper
 
+
+@_rate_limited
 def gemini_api_call(contents, classification_type="binary"):
     model = genai.GenerativeModel("gemini-2.0-flash")
     response = model.generate_content(contents)
