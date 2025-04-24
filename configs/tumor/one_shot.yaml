@@ -1,18 +1,18 @@
 project: tumor
 mode: one_shot
+classification_type: binary
 
 data:
   train_csv: "data/tumor/tumor_dataset.csv"
   test_csv: "data/tumor/tumor_test_dataset.csv"
-  save_path: ./results/${project}/${mode}/
-  num_shots: 2
+  save_path: ./results/${project}/${classification_type}/${mode}/
+  num_shots: 1
   batch_size: 1
   randomize_few_shot: false
-  seed: 42
-  num_test_images: 4
+  seed: 40
+  num_test_images: 16
   randomize_test_images: true
-  test_seed: 42
-  # Specify the path to the ground-truth labels file (adjust as needed)
+  test_seed: 40
   labels_path: "data/tumor/test/labels.json"
 
 model:
@@ -28,5 +28,5 @@ user_args:
   debug: false
 
 classification:
-  type: binary
+  type: ${classification_type}
   labels: ["Tumor", "No Tumor"]

@@ -1,14 +1,19 @@
-project: Tumor
+project: tumor
 mode: three_shot
+classification_type: binary
 
 data:
-  image_root: ./data/tumor/
-  test_labels_json: ./data/tumor/test_labels.json
-  save_path: ./results/${project}/${mode}/
+  train_csv: "data/tumor/tumor_dataset.csv"
+  test_csv: "data/tumor/tumor_test_dataset.csv"
+  save_path: ./results/${project}/${classification_type}/${mode}/
   num_shots: 3
   batch_size: 1
-  randomize_few_shot: true
-  seed: 42
+  randomize_few_shot: false
+  seed: 40
+  num_test_images: 16
+  randomize_test_images: true
+  test_seed: 40
+  labels_path: "data/tumor/test/labels.json"
 
 model:
   model_name: gemini-2.0-flash
@@ -18,6 +23,10 @@ model:
     max_output_tokens: 1024
 
 user_args:
-  prompt_path: ./prompts/tumor/few_shot.txt
+  prompt_path: "./prompts/tumor/few_shot.txt"
   verbose: true
   debug: false
+
+classification:
+  type: ${classification_type}
+  labels: ["Tumor", "No Tumor"]

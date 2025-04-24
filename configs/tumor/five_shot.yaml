@@ -1,19 +1,19 @@
-project: CRC100K
+project: tumor
 mode: one_shot
 classification_type: binary
 
 data:
-  train_csv: "data/CRC100K/binary/CRC100K_dataset.csv"
-  test_csv: "data/CRC100K/binary/CRC100K_test_dataset.csv"
+  train_csv: "data/tumor/tumor_dataset.csv"
+  test_csv: "data/tumor/tumor_test_dataset.csv"
   save_path: ./results/${project}/${classification_type}/${mode}/
-  num_shots: 1
+  num_shots: 5
   batch_size: 1
   randomize_few_shot: false
   seed: 40
   num_test_images: 16
   randomize_test_images: true
   test_seed: 40
-  labels_path: "data/CRC100K/binary/labels.json"
+  labels_path: "data/tumor/test/labels.json"
 
 model:
   model_name: gemini-2.0-flash
@@ -23,7 +23,7 @@ model:
     max_output_tokens: 1024
 
 user_args:
-  prompt_path: "./prompts/CRC100K/binary/few_shot.txt"
+  prompt_path: "./prompts/tumor/few_shot.txt"
   verbose: true
   debug: false
 

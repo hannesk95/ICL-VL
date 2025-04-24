@@ -1,12 +1,12 @@
 project: CRC100K
-mode: one_shot
+mode: three_shot
 classification_type: multiclass
 
 data:
   train_csv: "data/CRC100K/multiclass/CRC100K_dataset.csv"
   test_csv: "data/CRC100K/multiclass/CRC100K_test_dataset.csv"
   save_path: ./results/${project}/${classification_type}/${mode}/
-  num_shots: 1
+  num_shots: 3
   batch_size: 1
   randomize_few_shot: false
   seed: 40

@@ -1,12 +1,12 @@
 project: CRC100K
-mode: one_shot
+mode: zero_shot
 classification_type: binary
 
 data:
   train_csv: "data/CRC100K/binary/CRC100K_dataset.csv"
   test_csv: "data/CRC100K/binary/CRC100K_test_dataset.csv"
   save_path: ./results/${project}/${classification_type}/${mode}/
-  num_shots: 1
+  num_shots: 0
   batch_size: 1
   randomize_few_shot: false
   seed: 40
@@ -23,7 +23,7 @@ model:
     max_output_tokens: 1024
 
 user_args:
-  prompt_path: "./prompts/CRC100K/binary/few_shot.txt"
+  prompt_path: "./prompts/CRC100K/binary/zero_shot.txt"
   verbose: true
   debug: false
 
