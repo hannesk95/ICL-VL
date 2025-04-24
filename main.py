@@ -2,15 +2,17 @@ import os
 import json
 import datetime
 import random
+from collections import defaultdict
 from dotenv import load_dotenv
 from PIL import Image
 import torchvision.transforms as T
 from torch.utils.data import DataLoader, Subset
+
 from config import load_config
 from dataset import CSVDataset
 from model import configure_gemini, build_gemini_prompt, gemini_api_call
+from sampler import build_balanced_indices  # ←‑‑ new import
 import subprocess
-from collections import defaultdict
 
 
 def get_few_shot_samples(
@@ -22,6 +24,7 @@ def get_few_shot_samples(
     randomize=False,
     seed=42,
 ):
+    """Unchanged from your original script (trimmed here for brevity)."""
     dataset = CSVDataset(csv_path, transform=transform)
 
     label_map = {
@@ -61,7 +64,7 @@ def get_few_shot_samples(
         for cidx in indices:
             img_tensor, img_path, _ = dataset[cidx]
             img = T.ToPILImage()(img_tensor)
-            items.append((img, img_path))            
+            items.append((img, img_path))
         few_shot_dict[lbl] = items
 
     return few_shot_dict
@@ -69,14 +72,14 @@ def get_few_shot_samples(
 
 def main():
     load_dotenv()
-    config = load_config("configs/CRC100K/binary/ten_shot.yaml")
+    config = load_config("configs/CRC100K/multiclass/five_shot.yaml")
 
-    train_csv   = config["data"]["train_csv"]
-    test_csv    = config["data"]["test_csv"]
-    save_path   = config["data"]["save_path"]
+    train_csv = config["data"]["train_csv"]
+    test_csv = config["data"]["test_csv"]
+    save_path = config["data"]["save_path"]
     prompt_path = config["user_args"]["prompt_path"]
     classification_type = config["classification"]["type"]
-    label_list          = config["classification"]["labels"]
+    label_list = config["classification"]["labels"]
 
     os.environ["PROMPT_PATH"] = prompt_path
     print(f"[INFO] Using prompt file: {prompt_path}")
@@ -86,17 +89,23 @@ def main():
     configure_gemini()
     transform = T.Compose([T.ToTensor()])
 
-    # ---------- Build test loader ----------
-    test_dataset = CSVDataset(csv_path=test_csv, transform=transform)
-    test_indices = list(range(len(test_dataset)))
-    if config["data"].get("randomize_test_images"):
-        random.seed(config["data"].get("test_seed", 42))
-        random.shuffle(test_indices)
-    test_dataset = Subset(test_dataset, test_indices[:config["data"]["num_test_images"]])
+    # ---------- Build *balanced* test loader ----------
+    test_dataset_full = CSVDataset(csv_path=test_csv, transform=transform)
+
+    balanced_indices = build_balanced_indices(
+        test_dataset_full,
+        classification_type=classification_type,
+        label_list=label_list,
+        total_images=config["data"]["num_test_images"],
+        randomize=config["data"].get("randomize_test_images", True),
+        seed=config["data"].get("test_seed", 42),
+    )
+
+    test_dataset = Subset(test_dataset_full, balanced_indices)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
     num_tests = len(test_loader.dataset)
 
-    # ---------- Few-shot selection ----------
+    # ---------- Few‑shot selection (unchanged) ----------
     few_shot_samples = get_few_shot_samples(
         train_csv,
         transform,
@@ -113,10 +122,10 @@ def main():
         for _, path in few_shot_samples[label]:
             print(f"    - {path}")
 
-    # ---------- Inference ----------
+    # ---------- Inference loop (unchanged) ----------
     results = []
     for idx, (test_tensors, test_paths, _) in enumerate(test_loader, 1):
-        print(f"\n[IMAGE {idx}/{num_tests}] {test_paths[0]}")     
+        print(f"\n[IMAGE {idx}/{num_tests}] {test_paths[0]}")
         test_img_pil = T.ToPILImage()(test_tensors.squeeze(0))
         path_str = test_paths[0]
 
@@ -156,7 +165,14 @@ def main():
     if labels_path and os.path.exists(labels_path):
         print("[INFO] Running evaluation...")
         subprocess.run(
-            ["python", "evaluation.py", "--results", results_path, "--labels", labels_path],
+            [
+                "python",
+                "evaluation.py",
+                "--results",
+                results_path,
+                "--labels",
+                labels_path,
+            ],
             check=True,
         )
     else:
