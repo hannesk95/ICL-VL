@@ -22,11 +22,6 @@ def get_few_shot_samples(
     randomize=False,
     seed=42,
 ):
-    """
-    Return a dict mapping each label in `label_list` to a list of
-    (PIL.Image, img_path) tuples.  Keeping the path lets us print it later,
-    while only the image gets passed to Gemini.
-    """
     dataset = CSVDataset(csv_path, transform=transform)
 
     label_map = {
@@ -74,7 +69,7 @@ def get_few_shot_samples(
 
 def main():
     load_dotenv()
-    config = load_config("configs/CRC100K/binary/one_shot.yaml")
+    config = load_config("configs/tumor/five_shot.yaml")
 
     train_csv   = config["data"]["train_csv"]
     test_csv    = config["data"]["test_csv"]

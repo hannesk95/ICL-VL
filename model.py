@@ -19,11 +19,6 @@ def load_prompt_text():
 
 
 def build_gemini_prompt(few_shot_samples, test_image, classification_type="binary"):
-    """
-    `few_shot_samples` now contains lists of (PIL.Image, path) tuples.
-    We only need the image itself for Gemini, so we unpack with
-    `(img, _)` and ignore the path.
-    """
     instruction = load_prompt_text()
     contents = [{"role": "user", "parts": [instruction]}]
 
