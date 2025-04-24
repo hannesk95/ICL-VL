@@ -69,7 +69,7 @@ def get_few_shot_samples(
 
 def main():
     load_dotenv()
-    config = load_config("configs/CRC100K/binary/five_shot.yaml")
+    config = load_config("configs/CRC100K/binary/ten_shot.yaml")
 
     train_csv   = config["data"]["train_csv"]
     test_csv    = config["data"]["test_csv"]
@@ -94,6 +94,7 @@ def main():
         random.shuffle(test_indices)
     test_dataset = Subset(test_dataset, test_indices[:config["data"]["num_test_images"]])
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+    num_tests = len(test_loader.dataset)
 
     # ---------- Few-shot selection ----------
     few_shot_samples = get_few_shot_samples(
@@ -114,10 +115,10 @@ def main():
 
     # ---------- Inference ----------
     results = []
-    for test_tensors, test_paths, _ in test_loader:
+    for idx, (test_tensors, test_paths, _) in enumerate(test_loader, 1):
+        print(f"\n[IMAGE {idx}/{num_tests}] {test_paths[0]}")     
         test_img_pil = T.ToPILImage()(test_tensors.squeeze(0))
         path_str = test_paths[0]
-        print(f"\n[LOADED TEST IMAGE] {path_str}")
 
         contents = build_gemini_prompt(
             few_shot_samples,

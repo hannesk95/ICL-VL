@@ -8,12 +8,12 @@ from functools import wraps
 from threading import Lock
 
 _MAX_CALLS = 16          # tokens in a rolling window
-_PERIOD    = 60.0        # seconds
+_PERIOD    = 70.0        # seconds
 _CALLS     = deque()     # timestamps of recent calls
 _LOCK      = Lock()
 
 # toggle with env-var or constant
-RL_VERBOSE = os.getenv("RL_VERBOSE", "0") == "1"
+RL_VERBOSE = True
 
 def _acquire_token():
     """Block until a token is free; optionally print waiting stats."""
