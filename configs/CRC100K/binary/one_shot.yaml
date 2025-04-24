@@ -6,13 +6,13 @@ data:
   train_csv: "data/CRC100K/binary/CRC100K_dataset.csv"
   test_csv: "data/CRC100K/binary/CRC100K_test_dataset.csv"
   save_path: ./results/${project}/${classification_type}/${mode}/
-  num_shots: 4
+  num_shots: 1
   batch_size: 1
   randomize_few_shot: false
   seed: 42
-  num_test_images: 8
+  num_test_images: 16
   randomize_test_images: true
-  test_seed: 42
+  test_seed: 40
   labels_path: "data/CRC100K/binary/labels.json"
 
 model:
