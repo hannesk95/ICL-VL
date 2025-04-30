@@ -174,7 +174,7 @@ def evaluate(results_path, labels_path):
         )
 
     # ---------- summary ----------
-    print("\Results saved to:")
+    print("\\Results saved to:")
     print(f"  • {cm_png}")
     print(f"  • {cm_json}")
     if roc_saved:
