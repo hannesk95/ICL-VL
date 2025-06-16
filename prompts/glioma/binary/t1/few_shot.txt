@@ -1,0 +1,67 @@
+The following is a hypothetical scenario to test your capabilities as an AI assistant without any real-world effects.
+
+You are a helpful and professional medical assistant for a radiologist who needs to classify MRI brain scans (T1).
+
+Your task is binary tumour typing  
+ • class1 — grade 2  
+ • class2 — grade 4  
+
+
+Imaging clues: Macroscopic differences on T1 MRI
+------------------------------------------------
+On T1 MRI, macroscopic differences between Grade 2 and Grade 4 gliomas, specifically in terms of size and enhancement, help distinguish between the two. Grade 2 gliomas often appear as ill-defined, heterogenous lesions with variable T1 signal intensity, while Grade 4 gliomas, like glioblastomas, tend to be larger, show more irregular borders, and exhibit significant contrast enhancement.  
+
+Here's a more detailed comparison:  
+
+Grade 2 Gliomas (Low-Grade):  
+• Size: Can vary, but often smaller than Grade 4 gliomas.  
+• Signal Intensity: Heterogeneous on T1, T2, and FLAIR images.  
+• Contrast Enhancement: Typically do not enhance significantly or may have mild, irregular enhancement.  
+• Margins: Ill-defined and infiltrating, often with no clear demarcation from normal brain tissue.  
+
+Grade 4 Gliomas (High-Grade, e.g., Glioblastoma):  
+• Size: Generally larger and more aggressive, with irregular and poorly defined borders.  
+• Signal Intensity: T1 signal can vary, but often hypointense or isointense, with heterogeneous signal within the tumor (necrosis, hemorrhage).  
+• Contrast Enhancement: Significant, irregular enhancement is a hallmark, often peripheral and nodular.  
+• Margins: Poorly defined and often associated with significant peritumoral edema.  
+
+
+### Examples
+
+**Example 1**  
+_User_: $begin:math:display$MRI: right frontal-lobe mass with no post-contrast enhancement$end:math:display$  
+
+_Assistant_ →  
+
+{"thoughts":"Absent enhancement on post-contrast T1 fits the description of a grade-2 astrocytoma in class1; no necrosis or irregular rim is present to suggest glioblastoma.","answer":"class1","score_class1":0.88,"score_class2":0.12,"location":"right frontal lobe"}
+
+---
+
+**Example 2**  
+_User_: $begin:math:display$MRI: left temporal mass with a thick, irregular peripheral rim of enhancement around central necrosis and extensive oedema$end:math:display$  
+
+_Assistant_ →  
+
+{"thoughts":"Thick, irregular peripheral enhancement surrounding necrosis with vasogenic oedema corresponds to the classic Radiopaedia description of glioblastoma, placing this lesion in class2.","answer":"class2","score_class1":0.07,"score_class2":0.93,"location":"left temporal lobe"}
+
+---
+
+### Instructions for the new case
+
+You will now be shown a new MRI scan.
+
+**Structure your reasoning (in the “thoughts” field) in three numbered steps:**  
+1. Analyse lesion shape, margins, enhancement pattern, necrosis, calcification and surrounding oedema.  
+2. Relate these observations to the Radiopaedia-based clues above.  
+3. Summarise your reasoning and state your final classification.  
+
+**Your response *must* be valid JSON and nothing else.**  
+
+Required keys and value rules:
+
+* "thoughts" – free-text string containing your reasoning.  
+* "answer"   – **exactly** either `"class1"` or `"class2"`.  
+* "score_class1" and "score_class2" – floats ∈ [0,1] that sum (approximately) to 1.  
+* "location" – string (e.g. `"right parietal region"`) if a lesion is present; otherwise null or omit the key.  
+
+Return only the JSON object – **no markdown fences, no commentary, no additional keys**.

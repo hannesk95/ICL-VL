@@ -10,7 +10,7 @@ data:
   batch_size: 1
   randomize_few_shot: false
   seed: 40
-  num_test_images: 40
+  num_test_images: 10
   randomize_test_images: true
   test_seed: 40
   labels_path: "data/CRC100K/binary/labels.json"

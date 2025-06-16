@@ -1,0 +1,60 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Project-level information
+# ──────────────────────────────────────────────────────────────────────────────
+project: CRC100K
+mode:    five_shot          # one_shot | five_shot | etc.
+classification_type: binary # binary  | multiclass
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Data section
+# ──────────────────────────────────────────────────────────────────────────────
+data:
+  # CSVs for the canonical training and test splits
+  train_csv:  "data/CRC100K/binary/CRC100K_dataset.csv"
+  test_csv:   "data/CRC100K/binary/CRC100K_test_dataset.csv"
+
+  # Where to write results
+  save_path:  "./results/${project}/${classification_type}/${mode}/"
+
+  # Few-shot settings
+  num_shots:             3     # images per class
+  randomize_few_shot:    false # true → reshuffle candidate pool
+  seed:                  40    # controls random few-shot order
+
+  # ── NEW: few-shot image-selection strategy ───────────────────────────────
+  sampling_strategy: random          # "random"  |  "knn"
+  knn_csv_path:      "data/CRC100K/binary/knn_32.csv"  # only used if strategy = knn
+  knn_top_k:         3               # neighbours actually taken (≤ 32)
+
+  # Balanced test subset
+  num_test_images:        40
+  randomize_test_images:  true
+  test_seed:              40
+
+  # Optional ground-truth JSON for automatic metrics
+  labels_path: "data/CRC100K/binary/labels.json"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Language-model parameters
+# ──────────────────────────────────────────────────────────────────────────────
+model:
+  model_name: gemini-2.0-flash
+  model_kwargs:
+    temperature:        0.7
+    top_p:              0.95
+    max_output_tokens:  1024
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Runtime/user tweaks
+# ──────────────────────────────────────────────────────────────────────────────
+user_args:
+  prompt_path: "./prompts/CRC100K/binary/few_shot.txt"
+  verbose: true
+  debug:   false
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Logical view of the task (helps model & evaluation code)
+# ──────────────────────────────────────────────────────────────────────────────
+classification:
+  type:   ${classification_type}     # must match the top-level field
+  labels: ["Tumor", "No Tumor"]      # order matters for output JSON

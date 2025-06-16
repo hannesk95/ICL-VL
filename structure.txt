@@ -1,67 +1,1208 @@
+data/sarcoma
+├── sarcoma
+│   ├── deep_learning_data.csv
+│   ├── patient_metadata.csv
+│   ├── radiomics_data.csv
+│   ├── test
+│   │   ├── T1
+│   │   │   ├── Sar001T1-label.nii.gz
+│   │   │   ├── Sar001T1.nii.gz
+│   │   │   ├── Sar002T1-label.nii.gz
+│   │   │   ├── Sar002T1.nii.gz
+│   │   │   ├── Sar003T1-label.nii.gz
+│   │   │   ├── Sar003T1.nii.gz
+│   │   │   ├── Sar004T1-label.nii.gz
+│   │   │   ├── Sar004T1.nii.gz
+│   │   │   ├── Sar006T1-label.nii.gz
+│   │   │   ├── Sar006T1.nii.gz
+│   │   │   ├── Sar008T1-label.nii.gz
+│   │   │   ├── Sar008T1.nii.gz
+│   │   │   ├── Sar009T1-label.nii.gz
+│   │   │   ├── Sar009T1.nii.gz
+│   │   │   ├── Sar010T1-label.nii.gz
+│   │   │   ├── Sar010T1.nii.gz
+│   │   │   ├── Sar012T1-label.nii.gz
+│   │   │   ├── Sar012T1.nii.gz
+│   │   │   ├── Sar013T1-label.nii.gz
+│   │   │   ├── Sar013T1.nii.gz
+│   │   │   ├── Sar014T1-label.nii.gz
+│   │   │   ├── Sar014T1.nii.gz
+│   │   │   ├── Sar016T1-label.nii.gz
+│   │   │   ├── Sar016T1.nii.gz
+│   │   │   ├── Sar017T1-label.nii.gz
+│   │   │   ├── Sar017T1.nii.gz
+│   │   │   ├── Sar018T1-label.nii.gz
+│   │   │   ├── Sar018T1.nii.gz
+│   │   │   ├── Sar019T1-label.nii.gz
+│   │   │   ├── Sar019T1.nii.gz
+│   │   │   ├── Sar020_updatedT1-label.nii.gz
+│   │   │   ├── Sar020_updatedT1.nii.gz
+│   │   │   ├── Sar021T1-label.nii.gz
+│   │   │   ├── Sar021T1.nii.gz
+│   │   │   ├── Sar022_updatedT1-label.nii.gz
+│   │   │   ├── Sar022_updatedT1.nii.gz
+│   │   │   ├── Sar023T1-label.nii.gz
+│   │   │   ├── Sar023T1.nii.gz
+│   │   │   ├── Sar024T1-label.nii.gz
+│   │   │   ├── Sar024T1.nii.gz
+│   │   │   ├── Sar025_updatedT1-label.nii.gz
+│   │   │   ├── Sar025_updatedT1.nii.gz
+│   │   │   ├── Sar026T1-label.nii.gz
+│   │   │   ├── Sar026T1.nii.gz
+│   │   │   ├── Sar027T1-label.nii.gz
+│   │   │   ├── Sar027T1.nii.gz
+│   │   │   ├── Sar028T1-label.nii.gz
+│   │   │   ├── Sar028T1.nii.gz
+│   │   │   ├── Sar029T1-label.nii.gz
+│   │   │   ├── Sar029T1.nii.gz
+│   │   │   ├── Sar030T1-label.nii.gz
+│   │   │   ├── Sar030T1.nii.gz
+│   │   │   ├── Sar031T1-label.nii.gz
+│   │   │   ├── Sar031T1.nii.gz
+│   │   │   ├── Sar032T1-label.nii.gz
+│   │   │   ├── Sar032T1.nii.gz
+│   │   │   ├── Sar033T1-label.nii.gz
+│   │   │   ├── Sar033T1.nii.gz
+│   │   │   ├── Sar034T1-label.nii.gz
+│   │   │   ├── Sar034T1.nii.gz
+│   │   │   ├── Sar035T1-label.nii.gz
+│   │   │   ├── Sar035T1.nii.gz
+│   │   │   ├── Sar036T1-label.nii.gz
+│   │   │   ├── Sar036T1.nii.gz
+│   │   │   ├── Sar037_updatedT1-label.nii.gz
+│   │   │   ├── Sar037_updatedT1.nii.gz
+│   │   │   ├── Sar038T1-label.nii.gz
+│   │   │   ├── Sar038T1.nii.gz
+│   │   │   ├── Sar040T1-label.nii.gz
+│   │   │   ├── Sar040T1.nii.gz
+│   │   │   ├── Sar041T1-label.nii.gz
+│   │   │   ├── Sar041T1.nii.gz
+│   │   │   ├── Sar042T1-label.nii.gz
+│   │   │   ├── Sar042T1.nii.gz
+│   │   │   ├── Sar044T1-label.nii.gz
+│   │   │   ├── Sar044T1.nii.gz
+│   │   │   ├── Sar045T1-label.nii.gz
+│   │   │   ├── Sar045T1.nii.gz
+│   │   │   ├── Sar046T1-label.nii.gz
+│   │   │   ├── Sar046T1.nii.gz
+│   │   │   ├── Sar048T1-label.nii.gz
+│   │   │   ├── Sar048T1.nii.gz
+│   │   │   ├── Sar049T1-label.nii.gz
+│   │   │   ├── Sar049T1.nii.gz
+│   │   │   ├── Sar050T1-label.nii.gz
+│   │   │   ├── Sar050T1.nii.gz
+│   │   │   ├── Sar051T1-label.nii.gz
+│   │   │   ├── Sar051T1.nii.gz
+│   │   │   ├── Sar052T1-label.nii.gz
+│   │   │   ├── Sar052T1.nii.gz
+│   │   │   ├── Sar053T1-label.nii.gz
+│   │   │   ├── Sar053T1.nii.gz
+│   │   │   ├── Sar054T1-label.nii.gz
+│   │   │   ├── Sar054T1.nii.gz
+│   │   │   ├── Sar055T1-label.nii.gz
+│   │   │   ├── Sar055T1.nii.gz
+│   │   │   ├── Sar056T1-label.nii.gz
+│   │   │   ├── Sar056T1.nii.gz
+│   │   │   ├── Sar057_updatedT1-label.nii.gz
+│   │   │   ├── Sar057_updatedT1.nii.gz
+│   │   │   ├── Sar058T1-label.nii.gz
+│   │   │   ├── Sar058T1.nii.gz
+│   │   │   ├── Sar060T1-label.nii.gz
+│   │   │   ├── Sar060T1.nii.gz
+│   │   │   ├── Sar062T1-label.nii.gz
+│   │   │   ├── Sar062T1.nii.gz
+│   │   │   ├── Sar064T1-label.nii.gz
+│   │   │   ├── Sar064T1.nii.gz
+│   │   │   ├── Sar065T1-label.nii.gz
+│   │   │   ├── Sar065T1.nii.gz
+│   │   │   ├── Sar066T1-label.nii.gz
+│   │   │   ├── Sar066T1.nii.gz
+│   │   │   ├── Sar067T1-label.nii.gz
+│   │   │   ├── Sar067T1.nii.gz
+│   │   │   ├── Sar069T1-label.nii.gz
+│   │   │   ├── Sar069T1.nii.gz
+│   │   │   ├── Sar070T1-label.nii.gz
+│   │   │   ├── Sar070T1.nii.gz
+│   │   │   ├── Sar071T1-label.nii.gz
+│   │   │   ├── Sar071T1.nii.gz
+│   │   │   ├── Sar073_updatedT1-label.nii.gz
+│   │   │   ├── Sar073_updatedT1.nii.gz
+│   │   │   ├── Sar074T1-label.nii.gz
+│   │   │   ├── Sar074T1.nii.gz
+│   │   │   ├── Sar076T1-label.nii.gz
+│   │   │   ├── Sar076T1.nii.gz
+│   │   │   ├── Sar077T1-label.nii.gz
+│   │   │   ├── Sar077T1.nii.gz
+│   │   │   ├── Sar079T1-label.nii.gz
+│   │   │   ├── Sar079T1.nii.gz
+│   │   │   ├── Sar080T1-label.nii.gz
+│   │   │   ├── Sar080T1.nii.gz
+│   │   │   ├── Sar081T1-label.nii.gz
+│   │   │   ├── Sar081T1.nii.gz
+│   │   │   ├── Sar082T1-label.nii.gz
+│   │   │   ├── Sar082T1.nii.gz
+│   │   │   ├── Sar084T1-label.nii.gz
+│   │   │   ├── Sar084T1.nii.gz
+│   │   │   ├── Sar085T1-label.nii.gz
+│   │   │   ├── Sar085T1.nii.gz
+│   │   │   ├── Sar086T1-label.nii.gz
+│   │   │   ├── Sar086T1.nii.gz
+│   │   │   ├── Sar087T1-label.nii.gz
+│   │   │   ├── Sar087T1.nii.gz
+│   │   │   ├── Sar088T1-label.nii.gz
+│   │   │   ├── Sar088T1.nii.gz
+│   │   │   ├── Sar089T1-label.nii.gz
+│   │   │   ├── Sar089T1.nii.gz
+│   │   │   ├── Sar090T1-label.nii.gz
+│   │   │   ├── Sar090T1.nii.gz
+│   │   │   ├── Sar091_updatedT1-label.nii.gz
+│   │   │   ├── Sar091_updatedT1.nii.gz
+│   │   │   ├── Sar092T1-label.nii.gz
+│   │   │   ├── Sar092T1.nii.gz
+│   │   │   ├── Sar095T1-label.nii.gz
+│   │   │   ├── Sar095T1.nii.gz
+│   │   │   ├── Sar096T1-label.nii.gz
+│   │   │   ├── Sar096T1.nii.gz
+│   │   │   ├── Sar097T1-label.nii.gz
+│   │   │   ├── Sar097T1.nii.gz
+│   │   │   ├── Sar098T1-label.nii.gz
+│   │   │   ├── Sar098T1.nii.gz
+│   │   │   ├── Sar099T1-label.nii.gz
+│   │   │   ├── Sar099T1.nii.gz
+│   │   │   ├── Sar101T1-label.nii.gz
+│   │   │   ├── Sar101T1.nii.gz
+│   │   │   ├── Sar103T1-label.nii.gz
+│   │   │   ├── Sar103T1.nii.gz
+│   │   │   ├── Sar104T1-label.nii.gz
+│   │   │   ├── Sar104T1.nii.gz
+│   │   │   ├── Sar105T1-label.nii.gz
+│   │   │   ├── Sar105T1.nii.gz
+│   │   │   ├── Sar106_updatedT1-label.nii.gz
+│   │   │   ├── Sar106_updatedT1.nii.gz
+│   │   │   ├── Sar108T1-label.nii.gz
+│   │   │   ├── Sar108T1.nii.gz
+│   │   │   ├── Sar109T1-label.nii.gz
+│   │   │   ├── Sar109T1.nii.gz
+│   │   │   ├── Sar110T1-label.nii.gz
+│   │   │   ├── Sar110T1.nii.gz
+│   │   │   ├── Sar111T1-label.nii.gz
+│   │   │   ├── Sar111T1.nii.gz
+│   │   │   ├── Sar112T1-label.nii.gz
+│   │   │   ├── Sar112T1.nii.gz
+│   │   │   ├── Sar113T1-label.nii.gz
+│   │   │   ├── Sar113T1.nii.gz
+│   │   │   ├── Sar116T1-label.nii.gz
+│   │   │   ├── Sar116T1.nii.gz
+│   │   │   ├── Sar117T1-label.nii.gz
+│   │   │   ├── Sar117T1.nii.gz
+│   │   │   ├── Sar118T1-label.nii.gz
+│   │   │   ├── Sar118T1.nii.gz
+│   │   │   ├── Sar122T1-label.nii.gz
+│   │   │   ├── Sar122T1.nii.gz
+│   │   │   ├── Sar123T1-label.nii.gz
+│   │   │   ├── Sar123T1.nii.gz
+│   │   │   ├── Sar125T1-label.nii.gz
+│   │   │   ├── Sar125T1.nii.gz
+│   │   │   ├── Sar126T1-label.nii.gz
+│   │   │   ├── Sar126T1.nii.gz
+│   │   │   ├── Sar127T1-label.nii.gz
+│   │   │   ├── Sar127T1.nii.gz
+│   │   │   ├── Sar129T1-label.nii.gz
+│   │   │   ├── Sar129T1.nii.gz
+│   │   │   ├── Sar130T1-label.nii.gz
+│   │   │   ├── Sar130T1.nii.gz
+│   │   │   ├── Sar132T1-label.nii.gz
+│   │   │   ├── Sar132T1.nii.gz
+│   │   │   ├── Sar133T1-label.nii.gz
+│   │   │   ├── Sar133T1.nii.gz
+│   │   │   ├── Sar135T1-label.nii.gz
+│   │   │   ├── Sar135T1.nii.gz
+│   │   │   ├── Sar136T1-label.nii.gz
+│   │   │   ├── Sar136T1.nii.gz
+│   │   │   ├── Sar137T1-label.nii.gz
+│   │   │   ├── Sar137T1.nii.gz
+│   │   │   ├── Sar138T1-label.nii.gz
+│   │   │   ├── Sar138T1.nii.gz
+│   │   │   ├── Sar140T1-label.nii.gz
+│   │   │   ├── Sar140T1.nii.gz
+│   │   │   ├── Sar141T1-label.nii.gz
+│   │   │   ├── Sar141T1.nii.gz
+│   │   │   ├── Sar142T1-label.nii.gz
+│   │   │   ├── Sar142T1.nii.gz
+│   │   │   ├── Sar143T1-label.nii.gz
+│   │   │   ├── Sar143T1.nii.gz
+│   │   │   ├── Sar144T1-label.nii.gz
+│   │   │   ├── Sar144T1.nii.gz
+│   │   │   ├── Sar145T1-label.nii.gz
+│   │   │   ├── Sar145T1.nii.gz
+│   │   │   ├── Sar146T1-label.nii.gz
+│   │   │   ├── Sar146T1.nii.gz
+│   │   │   ├── Sar147T1-label.nii.gz
+│   │   │   ├── Sar147T1.nii.gz
+│   │   │   ├── Sar148T1-label.nii.gz
+│   │   │   ├── Sar148T1.nii.gz
+│   │   │   ├── Sar150T1-label.nii.gz
+│   │   │   ├── Sar150T1.nii.gz
+│   │   │   ├── Sar152T1-label.nii.gz
+│   │   │   ├── Sar152T1.nii.gz
+│   │   │   ├── Sar153T1-label.nii.gz
+│   │   │   ├── Sar153T1.nii.gz
+│   │   │   ├── Sar155T1-label.nii.gz
+│   │   │   ├── Sar155T1.nii.gz
+│   │   │   ├── Sar156T1-label.nii.gz
+│   │   │   ├── Sar156T1.nii.gz
+│   │   │   ├── Sar157T1-label.nii.gz
+│   │   │   ├── Sar157T1.nii.gz
+│   │   │   ├── Sar158T1-label.nii.gz
+│   │   │   ├── Sar158T1.nii.gz
+│   │   │   ├── Sar159T1-label.nii.gz
+│   │   │   ├── Sar159T1.nii.gz
+│   │   │   ├── Sar160T1-label.nii.gz
+│   │   │   ├── Sar160T1.nii.gz
+│   │   │   ├── Sar161T1-label.nii.gz
+│   │   │   ├── Sar161T1.nii.gz
+│   │   │   ├── Sar163T1-label.nii.gz
+│   │   │   ├── Sar163T1.nii.gz
+│   │   │   ├── Sar164T1-label.nii.gz
+│   │   │   ├── Sar164T1.nii.gz
+│   │   │   ├── Sar165T1-label.nii.gz
+│   │   │   ├── Sar165T1.nii.gz
+│   │   │   ├── Sar167T1-label.nii.gz
+│   │   │   ├── Sar167T1.nii.gz
+│   │   │   ├── Sar168T1-label.nii.gz
+│   │   │   ├── Sar168T1.nii.gz
+│   │   │   ├── Sar169T1-label.nii.gz
+│   │   │   ├── Sar169T1.nii.gz
+│   │   │   ├── Sar172T1-label.nii.gz
+│   │   │   ├── Sar172T1.nii.gz
+│   │   │   ├── Sar176T1-label.nii.gz
+│   │   │   ├── Sar176T1.nii.gz
+│   │   │   ├── Sar177T1-label.nii.gz
+│   │   │   ├── Sar177T1.nii.gz
+│   │   │   ├── Sar179T1-label.nii.gz
+│   │   │   ├── Sar179T1.nii.gz
+│   │   │   ├── Sar180T1-label.nii.gz
+│   │   │   ├── Sar180T1.nii.gz
+│   │   │   ├── Sar181T1-label.nii.gz
+│   │   │   ├── Sar181T1.nii.gz
+│   │   │   ├── Sar182T1-label.nii.gz
+│   │   │   ├── Sar182T1.nii.gz
+│   │   │   ├── Sar183T1-label.nii.gz
+│   │   │   ├── Sar183T1.nii.gz
+│   │   │   ├── Sar184T1-label.nii.gz
+│   │   │   ├── Sar184T1.nii.gz
+│   │   │   ├── Sar185T1-label.nii.gz
+│   │   │   ├── Sar185T1.nii.gz
+│   │   │   ├── Sar186T1-label.nii.gz
+│   │   │   ├── Sar186T1.nii.gz
+│   │   │   ├── Sar187T1-label.nii.gz
+│   │   │   ├── Sar187T1.nii.gz
+│   │   │   ├── Sar188T1-label.nii.gz
+│   │   │   ├── Sar188T1.nii.gz
+│   │   │   ├── Sar189T1-label.nii.gz
+│   │   │   ├── Sar189T1.nii.gz
+│   │   │   ├── Sar190T1-label.nii.gz
+│   │   │   ├── Sar190T1.nii.gz
+│   │   │   ├── Sar191T1-label.nii.gz
+│   │   │   ├── Sar191T1.nii.gz
+│   │   │   ├── Sar192T1-label.nii.gz
+│   │   │   ├── Sar192T1.nii.gz
+│   │   │   ├── Sar193T1-label.nii.gz
+│   │   │   ├── Sar193T1.nii.gz
+│   │   │   ├── Sar194T1-label.nii.gz
+│   │   │   ├── Sar194T1.nii.gz
+│   │   │   ├── Sar195T1-label.nii.gz
+│   │   │   ├── Sar195T1.nii.gz
+│   │   │   ├── Sar196T1-label.nii.gz
+│   │   │   ├── Sar196T1.nii.gz
+│   │   │   ├── Sar198T1-label.nii.gz
+│   │   │   ├── Sar198T1.nii.gz
+│   │   │   ├── Sar199T1-label.nii.gz
+│   │   │   ├── Sar199T1.nii.gz
+│   │   │   ├── Sar200T1-label.nii.gz
+│   │   │   └── Sar200T1.nii.gz
+│   │   └── T2
+│   │       ├── Sar001_updatedSTIR-label.nii.gz
+│   │       ├── Sar001_updatedSTIR.nii.gz
+│   │       ├── Sar002STIR-label.nii.gz
+│   │       ├── Sar002STIR.nii.gz
+│   │       ├── Sar003_updatedSTIR-label.nii.gz
+│   │       ├── Sar003_updatedSTIR.nii.gz
+│   │       ├── Sar004STIR-label.nii.gz
+│   │       ├── Sar004STIR.nii.gz
+│   │       ├── Sar006STIR-label.nii.gz
+│   │       ├── Sar006STIR.nii.gz
+│   │       ├── Sar008STIR-label.nii.gz
+│   │       ├── Sar008STIR.nii.gz
+│   │       ├── Sar009STIR-label.nii.gz
+│   │       ├── Sar009STIR.nii.gz
+│   │       ├── Sar010STIR-label.nii.gz
+│   │       ├── Sar010STIR.nii.gz
+│   │       ├── Sar012STIR-label.nii.gz
+│   │       ├── Sar012STIR.nii.gz
+│   │       ├── Sar013STIR-label.nii.gz
+│   │       ├── Sar013STIR.nii.gz
+│   │       ├── Sar014STIR-label.nii.gz
+│   │       ├── Sar014STIR.nii.gz
+│   │       ├── Sar016STIR-label.nii.gz
+│   │       ├── Sar016STIR.nii.gz
+│   │       ├── Sar017STIR-label.nii.gz
+│   │       ├── Sar017STIR.nii.gz
+│   │       ├── Sar018STIR-label.nii.gz
+│   │       ├── Sar018STIR.nii.gz
+│   │       ├── Sar019STIR-label.nii.gz
+│   │       ├── Sar019STIR.nii.gz
+│   │       ├── Sar020STIR-label.nii.gz
+│   │       ├── Sar020STIR.nii.gz
+│   │       ├── Sar021STIR-label.nii.gz
+│   │       ├── Sar021STIR.nii.gz
+│   │       ├── Sar022_updatedSTIR-label.nii.gz
+│   │       ├── Sar022_updatedSTIR.nii.gz
+│   │       ├── Sar023STIR-label.nii.gz
+│   │       ├── Sar023STIR.nii.gz
+│   │       ├── Sar024STIR-label.nii.gz
+│   │       ├── Sar024STIR.nii.gz
+│   │       ├── Sar025_updatedSTIR-label.nii.gz
+│   │       ├── Sar025_updatedSTIR.nii.gz
+│   │       ├── Sar026STIR-label.nii.gz
+│   │       ├── Sar026STIR.nii.gz
+│   │       ├── Sar027STIR-label.nii.gz
+│   │       ├── Sar027STIR.nii.gz
+│   │       ├── Sar028STIR-label.nii.gz
+│   │       ├── Sar028STIR.nii.gz
+│   │       ├── Sar029STIR-label.nii.gz
+│   │       ├── Sar029STIR.nii.gz
+│   │       ├── Sar030STIR-label.nii.gz
+│   │       ├── Sar030STIR.nii.gz
+│   │       ├── Sar031_updatedSTIR-label.nii.gz
+│   │       ├── Sar031_updatedSTIR.nii.gz
+│   │       ├── Sar032STIR-label.nii.gz
+│   │       ├── Sar032STIR.nii.gz
+│   │       ├── Sar033STIR-label.nii.gz
+│   │       ├── Sar033STIR.nii.gz
+│   │       ├── Sar034STIR-label.nii.gz
+│   │       ├── Sar034STIR.nii.gz
+│   │       ├── Sar035_updatedSTIR-label.nii.gz
+│   │       ├── Sar035_updatedSTIR.nii.gz
+│   │       ├── Sar036STIR-label.nii.gz
+│   │       ├── Sar036STIR.nii.gz
+│   │       ├── Sar037_updatedSTIR-label.nii.gz
+│   │       ├── Sar037_updatedSTIR.nii.gz
+│   │       ├── Sar038STIR-label.nii.gz
+│   │       ├── Sar038STIR.nii.gz
+│   │       ├── Sar040STIR-label.nii.gz
+│   │       ├── Sar040STIR.nii.gz
+│   │       ├── Sar041STIR-label.nii.gz
+│   │       ├── Sar041STIR.nii.gz
+│   │       ├── Sar042STIR-label.nii.gz
+│   │       ├── Sar042STIR.nii.gz
+│   │       ├── Sar044STIR-label.nii.gz
+│   │       ├── Sar044STIR.nii.gz
+│   │       ├── Sar045STIR-label.nii.gz
+│   │       ├── Sar045STIR.nii.gz
+│   │       ├── Sar046STIR-label.nii.gz
+│   │       ├── Sar046STIR.nii.gz
+│   │       ├── Sar048STIR-label.nii.gz
+│   │       ├── Sar048STIR.nii.gz
+│   │       ├── Sar049STIR-label.nii.gz
+│   │       ├── Sar049STIR.nii.gz
+│   │       ├── Sar050STIR-label.nii.gz
+│   │       ├── Sar050STIR.nii.gz
+│   │       ├── Sar051STIR-label.nii.gz
+│   │       ├── Sar051STIR.nii.gz
+│   │       ├── Sar052STIR-label.nii.gz
+│   │       ├── Sar052STIR.nii.gz
+│   │       ├── Sar053STIR-label.nii.gz
+│   │       ├── Sar053STIR.nii.gz
+│   │       ├── Sar054STIR-label.nii.gz
+│   │       ├── Sar054STIR.nii.gz
+│   │       ├── Sar055STIR-label.nii.gz
+│   │       ├── Sar055STIR.nii.gz
+│   │       ├── Sar056_updatedSTIR-label.nii.gz
+│   │       ├── Sar056_updatedSTIR.nii.gz
+│   │       ├── Sar057STIR-label.nii.gz
+│   │       ├── Sar057STIR.nii.gz
+│   │       ├── Sar058STIR-label.nii.gz
+│   │       ├── Sar058STIR.nii.gz
+│   │       ├── Sar060STIR-label.nii.gz
+│   │       ├── Sar060STIR.nii.gz
+│   │       ├── Sar062STIR-label.nii.gz
+│   │       ├── Sar062STIR.nii.gz
+│   │       ├── Sar064STIR-label.nii.gz
+│   │       ├── Sar064STIR.nii.gz
+│   │       ├── Sar065STIR-label.nii.gz
+│   │       ├── Sar065STIR.nii.gz
+│   │       ├── Sar066STIR-label.nii.gz
+│   │       ├── Sar066STIR.nii.gz
+│   │       ├── Sar067STIR-label.nii.gz
+│   │       ├── Sar067STIR.nii.gz
+│   │       ├── Sar069STIR-label.nii.gz
+│   │       ├── Sar069STIR.nii.gz
+│   │       ├── Sar070STIR-label.nii.gz
+│   │       ├── Sar070STIR.nii.gz
+│   │       ├── Sar071STIR-label.nii.gz
+│   │       ├── Sar071STIR.nii.gz
+│   │       ├── Sar073_updatedSTIR-label.nii.gz
+│   │       ├── Sar073_updatedSTIR.nii.gz
+│   │       ├── Sar074STIR-label.nii.gz
+│   │       ├── Sar074STIR.nii.gz
+│   │       ├── Sar076STIR-label.nii.gz
+│   │       ├── Sar076STIR.nii.gz
+│   │       ├── Sar077STIR-label.nii.gz
+│   │       ├── Sar077STIR.nii.gz
+│   │       ├── Sar079STIR-label.nii.gz
+│   │       ├── Sar079STIR.nii.gz
+│   │       ├── Sar080STIR-label.nii.gz
+│   │       ├── Sar080STIR.nii.gz
+│   │       ├── Sar081STIR-label.nii.gz
+│   │       ├── Sar081STIR.nii.gz
+│   │       ├── Sar082STIR-label.nii.gz
+│   │       ├── Sar082STIR.nii.gz
+│   │       ├── Sar084STIR-label.nii.gz
+│   │       ├── Sar084STIR.nii.gz
+│   │       ├── Sar085STIR-label.nii.gz
+│   │       ├── Sar085STIR.nii.gz
+│   │       ├── Sar086STIR-label.nii.gz
+│   │       ├── Sar086STIR.nii.gz
+│   │       ├── Sar087STIR-label.nii.gz
+│   │       ├── Sar087STIR.nii.gz
+│   │       ├── Sar088STIR-label.nii.gz
+│   │       ├── Sar088STIR.nii.gz
+│   │       ├── Sar089STIR-label.nii.gz
+│   │       ├── Sar089STIR.nii.gz
+│   │       ├── Sar090STIR-label.nii.gz
+│   │       ├── Sar090STIR.nii.gz
+│   │       ├── Sar091_updatedSTIR-label.nii.gz
+│   │       ├── Sar091_updatedSTIR.nii.gz
+│   │       ├── Sar092STIR-label.nii.gz
+│   │       ├── Sar092STIR.nii.gz
+│   │       ├── Sar095STIR-label.nii.gz
+│   │       ├── Sar095STIR.nii.gz
+│   │       ├── Sar096STIR-label.nii.gz
+│   │       ├── Sar096STIR.nii.gz
+│   │       ├── Sar097STIR-label.nii.gz
+│   │       ├── Sar097STIR.nii.gz
+│   │       ├── Sar098STIR-label.nii.gz
+│   │       ├── Sar098STIR.nii.gz
+│   │       ├── Sar099STIR-label.nii.gz
+│   │       ├── Sar099STIR.nii.gz
+│   │       ├── Sar101STIR-label.nii.gz
+│   │       ├── Sar101STIR.nii.gz
+│   │       ├── Sar103STIR-label.nii.gz
+│   │       ├── Sar103STIR.nii.gz
+│   │       ├── Sar104STIR-label.nii.gz
+│   │       ├── Sar104STIR.nii.gz
+│   │       ├── Sar105STIR-label.nii.gz
+│   │       ├── Sar105STIR.nii.gz
+│   │       ├── Sar106_updatedSTIR-label.nii.gz
+│   │       ├── Sar106_updatedSTIR.nii.gz
+│   │       ├── Sar108STIR-label.nii.gz
+│   │       ├── Sar108STIR.nii.gz
+│   │       ├── Sar109STIR-label.nii.gz
+│   │       ├── Sar109STIR.nii.gz
+│   │       ├── Sar110STIR-label.nii.gz
+│   │       ├── Sar110STIR.nii.gz
+│   │       ├── Sar111STIR-label.nii.gz
+│   │       ├── Sar111STIR.nii.gz
+│   │       ├── Sar112STIR-label.nii.gz
+│   │       ├── Sar112STIR.nii.gz
+│   │       ├── Sar113STIR-label.nii.gz
+│   │       ├── Sar113STIR.nii.gz
+│   │       ├── Sar116STIR-label.nii.gz
+│   │       ├── Sar116STIR.nii.gz
+│   │       ├── Sar117STIR-label.nii.gz
+│   │       ├── Sar117STIR.nii.gz
+│   │       ├── Sar118STIR-label.nii.gz
+│   │       ├── Sar118STIR.nii.gz
+│   │       ├── Sar122STIR-label.nii.gz
+│   │       ├── Sar122STIR.nii.gz
+│   │       ├── Sar123STIR-label.nii.gz
+│   │       ├── Sar123STIR.nii.gz
+│   │       ├── Sar125STIR-label.nii.gz
+│   │       ├── Sar125STIR.nii.gz
+│   │       ├── Sar126STIR-label.nii.gz
+│   │       ├── Sar126STIR.nii.gz
+│   │       ├── Sar127STIR-label.nii.gz
+│   │       ├── Sar127STIR.nii.gz
+│   │       ├── Sar129STIR-label.nii.gz
+│   │       ├── Sar129STIR.nii.gz
+│   │       ├── Sar130STIR-label.nii.gz
+│   │       ├── Sar130STIR.nii.gz
+│   │       ├── Sar132STIR-label.nii.gz
+│   │       ├── Sar132STIR.nii.gz
+│   │       ├── Sar133STIR-label.nii.gz
+│   │       ├── Sar133STIR.nii.gz
+│   │       ├── Sar135STIR-label.nii.gz
+│   │       ├── Sar135STIR.nii.gz
+│   │       ├── Sar136STIR-label.nii.gz
+│   │       ├── Sar136STIR.nii.gz
+│   │       ├── Sar137STIR-label.nii.gz
+│   │       ├── Sar137STIR.nii.gz
+│   │       ├── Sar138STIR-label.nii.gz
+│   │       ├── Sar138STIR.nii.gz
+│   │       ├── Sar140STIR-label.nii.gz
+│   │       ├── Sar140STIR.nii.gz
+│   │       ├── Sar141STIR-label.nii.gz
+│   │       ├── Sar141STIR.nii.gz
+│   │       ├── Sar142STIR-label.nii.gz
+│   │       ├── Sar142STIR.nii.gz
+│   │       ├── Sar143STIR-label.nii.gz
+│   │       ├── Sar143STIR.nii.gz
+│   │       ├── Sar144STIR-label.nii.gz
+│   │       ├── Sar144STIR.nii.gz
+│   │       ├── Sar145STIR-label.nii.gz
+│   │       ├── Sar145STIR.nii.gz
+│   │       ├── Sar146STIR-label.nii.gz
+│   │       ├── Sar146STIR.nii.gz
+│   │       ├── Sar147STIR-label.nii.gz
+│   │       ├── Sar147STIR.nii.gz
+│   │       ├── Sar148STIR-label.nii.gz
+│   │       ├── Sar148STIR.nii.gz
+│   │       ├── Sar150STIR-label.nii.gz
+│   │       ├── Sar150STIR.nii.gz
+│   │       ├── Sar152STIR-label.nii.gz
+│   │       ├── Sar152STIR.nii.gz
+│   │       ├── Sar153STIR-label.nii.gz
+│   │       ├── Sar153STIR.nii.gz
+│   │       ├── Sar155STIR-label.nii.gz
+│   │       ├── Sar155STIR.nii.gz
+│   │       ├── Sar156STIR-label.nii.gz
+│   │       ├── Sar156STIR.nii.gz
+│   │       ├── Sar157STIR-label.nii.gz
+│   │       ├── Sar157STIR.nii.gz
+│   │       ├── Sar158STIR-label.nii.gz
+│   │       ├── Sar158STIR.nii.gz
+│   │       ├── Sar159STIR-label.nii.gz
+│   │       ├── Sar159STIR.nii.gz
+│   │       ├── Sar160STIR-label.nii.gz
+│   │       ├── Sar160STIR.nii.gz
+│   │       ├── Sar161STIR-label.nii.gz
+│   │       ├── Sar161STIR.nii.gz
+│   │       ├── Sar163STIR-label.nii.gz
+│   │       ├── Sar163STIR.nii.gz
+│   │       ├── Sar164STIR-label.nii.gz
+│   │       ├── Sar164STIR.nii.gz
+│   │       ├── Sar165STIR-label.nii.gz
+│   │       ├── Sar165STIR.nii.gz
+│   │       ├── Sar167STIR-label.nii.gz
+│   │       ├── Sar167STIR.nii.gz
+│   │       ├── Sar168STIR-label.nii.gz
+│   │       ├── Sar168STIR.nii.gz
+│   │       ├── Sar169STIR-label.nii.gz
+│   │       ├── Sar169STIR.nii.gz
+│   │       ├── Sar172STIR-label.nii.gz
+│   │       ├── Sar172STIR.nii.gz
+│   │       ├── Sar176STIR-label.nii.gz
+│   │       ├── Sar176STIR.nii.gz
+│   │       ├── Sar177STIR-label.nii.gz
+│   │       ├── Sar177STIR.nii.gz
+│   │       ├── Sar179STIR-label.nii.gz
+│   │       ├── Sar179STIR.nii.gz
+│   │       ├── Sar180STIR-label.nii.gz
+│   │       ├── Sar180STIR.nii.gz
+│   │       ├── Sar181STIR-label.nii.gz
+│   │       ├── Sar181STIR.nii.gz
+│   │       ├── Sar182STIR-label.nii.gz
+│   │       ├── Sar182STIR.nii.gz
+│   │       ├── Sar183STIR-label.nii.gz
+│   │       ├── Sar183STIR.nii.gz
+│   │       ├── Sar184STIR-label.nii.gz
+│   │       ├── Sar184STIR.nii.gz
+│   │       ├── Sar185STIR-label.nii.gz
+│   │       ├── Sar185STIR.nii.gz
+│   │       ├── Sar186STIR-label.nii.gz
+│   │       ├── Sar186STIR.nii.gz
+│   │       ├── Sar187STIR-label.nii.gz
+│   │       ├── Sar187STIR.nii.gz
+│   │       ├── Sar188STIR-label.nii.gz
+│   │       ├── Sar188STIR.nii.gz
+│   │       ├── Sar189STIR-label.nii.gz
+│   │       ├── Sar189STIR.nii.gz
+│   │       ├── Sar190STIR-label.nii.gz
+│   │       ├── Sar190STIR.nii.gz
+│   │       ├── Sar191STIR-label.nii.gz
+│   │       ├── Sar191STIR.nii.gz
+│   │       ├── Sar192STIR-label.nii.gz
+│   │       ├── Sar192STIR.nii.gz
+│   │       ├── Sar193STIR-label.nii.gz
+│   │       ├── Sar193STIR.nii.gz
+│   │       ├── Sar194STIR-label.nii.gz
+│   │       ├── Sar194STIR.nii.gz
+│   │       ├── Sar195STIR-label.nii.gz
+│   │       ├── Sar195STIR.nii.gz
+│   │       ├── Sar196STIR-label.nii.gz
+│   │       ├── Sar196STIR.nii.gz
+│   │       ├── Sar198STIR-label.nii.gz
+│   │       ├── Sar198STIR.nii.gz
+│   │       ├── Sar199STIR-label.nii.gz
+│   │       ├── Sar199STIR.nii.gz
+│   │       ├── Sar200STIR-label.nii.gz
+│   │       └── Sar200STIR.nii.gz
+│   └── train
+│       ├── T1
+│       │   ├── S001AT1-label.nii.gz
+│       │   ├── S001T1.nii.gz
+│       │   ├── S002AT1-label.nii.gz
+│       │   ├── S002T1.nii.gz
+│       │   ├── S003T1-label.nii.gz
+│       │   ├── S003T1.nii.gz
+│       │   ├── S004AT1-label.nii.gz
+│       │   ├── S004T1.nii.gz
+│       │   ├── S005AT1-label.nii.gz
+│       │   ├── S005T1.nii.gz
+│       │   ├── S006AT1-label.nii.gz
+│       │   ├── S006T1.nii.gz
+│       │   ├── S007T1-label.nii.gz
+│       │   ├── S007T1.nii.gz
+│       │   ├── S008T1-label.nii.gz
+│       │   ├── S008T1.nii.gz
+│       │   ├── S014T1-label.nii.gz
+│       │   ├── S014T1.nii.gz
+│       │   ├── S015AT1-label.nii.gz
+│       │   ├── S015T1.nii.gz
+│       │   ├── S016T1-label.nii.gz
+│       │   ├── S016T1.nii.gz
+│       │   ├── S018AT1-label.nii.gz
+│       │   ├── S018T1.nii.gz
+│       │   ├── S019T1-label.nii.gz
+│       │   ├── S019T1.nii.gz
+│       │   ├── S020T1-label.nii.gz
+│       │   ├── S020T1.nii.gz
+│       │   ├── S022T1-label.nii.gz
+│       │   ├── S022T1.nii.gz
+│       │   ├── S023AT1-label.nii.gz
+│       │   ├── S023T1.nii.gz
+│       │   ├── S024T1-label.nii.gz
+│       │   ├── S024T1.nii.gz
+│       │   ├── S026T1-label.nii.gz
+│       │   ├── S026T1.nii.gz
+│       │   ├── S027AT1-label.nii.gz
+│       │   ├── S027T1.nii.gz
+│       │   ├── S029AT1-label.nii.gz
+│       │   ├── S029T1.nii.gz
+│       │   ├── S030AT1-label.nii.gz
+│       │   ├── S030T1.nii.gz
+│       │   ├── S031AT1-label.nii.gz
+│       │   ├── S031T1.nii.gz
+│       │   ├── S032T1-label.nii.gz
+│       │   ├── S032T1.nii.gz
+│       │   ├── S033T1-label.nii.gz
+│       │   ├── S033T1.nii.gz
+│       │   ├── S034T1-label.nii.gz
+│       │   ├── S034T1.nii.gz
+│       │   ├── S035T1-label.nii.gz
+│       │   ├── S035T1.nii.gz
+│       │   ├── S036T1-label.nii.gz
+│       │   ├── S036T1.nii.gz
+│       │   ├── S037T1-label.nii.gz
+│       │   ├── S037T1.nii.gz
+│       │   ├── S038T1-label.nii.gz
+│       │   ├── S038T1.nii.gz
+│       │   ├── S039AT1-label.nii.gz
+│       │   ├── S039T1.nii.gz
+│       │   ├── S040AT1-label.nii.gz
+│       │   ├── S040T1.nii.gz
+│       │   ├── S041AT1-label.nii.gz
+│       │   ├── S041T1.nii.gz
+│       │   ├── S042AT1-label.nii.gz
+│       │   ├── S042T1.nii.gz
+│       │   ├── S043T1-label.nii.gz
+│       │   ├── S043T1.nii.gz
+│       │   ├── S044AT1-label.nii.gz
+│       │   ├── S044T1.nii.gz
+│       │   ├── S045AT1-label.nii.gz
+│       │   ├── S045T1.nii.gz
+│       │   ├── S046T1-label.nii.gz
+│       │   ├── S046T1.nii.gz
+│       │   ├── S047T1-label.nii.gz
+│       │   ├── S047T1.nii.gz
+│       │   ├── S048T1-label.nii.gz
+│       │   ├── S048T1.nii.gz
+│       │   ├── S050T1-label.nii.gz
+│       │   ├── S050T1.nii.gz
+│       │   ├── S053T1-label.nii.gz
+│       │   ├── S053T1.nii.gz
+│       │   ├── S070T1-label.nii.gz
+│       │   ├── S070T1.nii.gz
+│       │   ├── S074T1-label.nii.gz
+│       │   ├── S074T1.nii.gz
+│       │   ├── S076T1-label.nii.gz
+│       │   ├── S076T1.nii.gz
+│       │   ├── S082T1-label.nii.gz
+│       │   ├── S082T1.nii.gz
+│       │   ├── S083T1-label.nii.gz
+│       │   ├── S083T1.nii.gz
+│       │   ├── S084T1-label.nii.gz
+│       │   ├── S084T1.nii.gz
+│       │   ├── S088T1-label.nii.gz
+│       │   ├── S088T1.nii.gz
+│       │   ├── S090T1-label.nii.gz
+│       │   ├── S090T1.nii.gz
+│       │   ├── S096T1-label.nii.gz
+│       │   ├── S096T1.nii.gz
+│       │   ├── S107T1-label.nii.gz
+│       │   ├── S107T1.nii.gz
+│       │   ├── S126T1-label.nii.gz
+│       │   ├── S126T1.nii.gz
+│       │   ├── S130T1-label.nii.gz
+│       │   ├── S130T1.nii.gz
+│       │   ├── S134T1-label.nii.gz
+│       │   ├── S134T1.nii.gz
+│       │   ├── S135T1-label.nii.gz
+│       │   ├── S135T1.nii.gz
+│       │   ├── S144T1-label.nii.gz
+│       │   ├── S144T1.nii.gz
+│       │   ├── S148T1-label.nii.gz
+│       │   ├── S148T1.nii.gz
+│       │   ├── S152T1-label.nii.gz
+│       │   ├── S152T1.nii.gz
+│       │   ├── S154T1-label.nii.gz
+│       │   ├── S154T1.nii.gz
+│       │   ├── S156T1-label.nii.gz
+│       │   ├── S156T1.nii.gz
+│       │   ├── S161AT1-label.nii.gz
+│       │   ├── S161T1.nii.gz
+│       │   ├── S167AT1-label.nii.gz
+│       │   ├── S167T1.nii.gz
+│       │   ├── S179T1-label.nii.gz
+│       │   ├── S179T1.nii.gz
+│       │   ├── S191T1-label.nii.gz
+│       │   ├── S191T1.nii.gz
+│       │   ├── S194T1-label.nii.gz
+│       │   ├── S194T1.nii.gz
+│       │   ├── S196T1-label.nii.gz
+│       │   ├── S196T1.nii.gz
+│       │   ├── S202T1-label.nii.gz
+│       │   ├── S202T1.nii.gz
+│       │   ├── S203T1-label.nii.gz
+│       │   ├── S203T1.nii.gz
+│       │   ├── S205T1-label.nii.gz
+│       │   ├── S205T1.nii.gz
+│       │   ├── S206T1-label.nii.gz
+│       │   ├── S206T1.nii.gz
+│       │   ├── S207T1-label.nii.gz
+│       │   ├── S207T1.nii.gz
+│       │   ├── S208T1-label.nii.gz
+│       │   ├── S208T1.nii.gz
+│       │   ├── S209T1-label.nii.gz
+│       │   ├── S209T1.nii.gz
+│       │   ├── S210T1-label.nii.gz
+│       │   ├── S210T1.nii.gz
+│       │   ├── S211T1-label.nii.gz
+│       │   ├── S211T1.nii.gz
+│       │   ├── S212T1-label.nii.gz
+│       │   ├── S212T1.nii.gz
+│       │   ├── S213T1-label.nii.gz
+│       │   ├── S213T1.nii.gz
+│       │   ├── S214T1-label.nii.gz
+│       │   ├── S214T1.nii.gz
+│       │   ├── S215T1-label.nii.gz
+│       │   ├── S215T1.nii.gz
+│       │   ├── S216T1-label.nii.gz
+│       │   ├── S216T1.nii.gz
+│       │   ├── S217T1-label.nii.gz
+│       │   ├── S217T1.nii.gz
+│       │   ├── S218T1-label.nii.gz
+│       │   ├── S218T1.nii.gz
+│       │   ├── S219T1-label.nii.gz
+│       │   ├── S219T1.nii.gz
+│       │   ├── S220T1-label.nii.gz
+│       │   ├── S220T1.nii.gz
+│       │   ├── S221T1-label.nii.gz
+│       │   ├── S221T1.nii.gz
+│       │   ├── S222T1-label.nii.gz
+│       │   ├── S222T1.nii.gz
+│       │   ├── S223T1-label.nii.gz
+│       │   ├── S223T1.nii.gz
+│       │   ├── S224T1-label.nii.gz
+│       │   ├── S224T1.nii.gz
+│       │   ├── S226T1-label.nii.gz
+│       │   ├── S226T1.nii.gz
+│       │   ├── S227T1-label.nii.gz
+│       │   ├── S227T1.nii.gz
+│       │   ├── S228T1-label.nii.gz
+│       │   ├── S228T1.nii.gz
+│       │   ├── S229T1-label.nii.gz
+│       │   ├── S229T1.nii.gz
+│       │   ├── S230T1-label.nii.gz
+│       │   ├── S230T1.nii.gz
+│       │   ├── S231T1-label.nii.gz
+│       │   ├── S231T1.nii.gz
+│       │   ├── S236T1-label.nii.gz
+│       │   ├── S236T1.nii.gz
+│       │   ├── S241T1-label.nii.gz
+│       │   ├── S241T1.nii.gz
+│       │   ├── S244T1-label.nii.gz
+│       │   ├── S244T1.nii.gz
+│       │   ├── S245T1-label.nii.gz
+│       │   ├── S245T1.nii.gz
+│       │   ├── S248T1-label.nii.gz
+│       │   ├── S248T1.nii.gz
+│       │   ├── S252T1-label.nii.gz
+│       │   ├── S252T1.nii.gz
+│       │   ├── S254T1-label.nii.gz
+│       │   ├── S254T1.nii.gz
+│       │   ├── S257T1-label.nii.gz
+│       │   ├── S257T1.nii.gz
+│       │   ├── S258T1-label.nii.gz
+│       │   ├── S258T1.nii.gz
+│       │   ├── S300T1-label.nii.gz
+│       │   ├── S300T1.nii.gz
+│       │   ├── S301T1-label.nii.gz
+│       │   ├── S301T1.nii.gz
+│       │   ├── S302T1-label.nii.gz
+│       │   ├── S302T1.nii.gz
+│       │   ├── S303T1-label.nii.gz
+│       │   ├── S303T1.nii.gz
+│       │   ├── S304T1-label.nii.gz
+│       │   ├── S304T1.nii.gz
+│       │   ├── S305T1-label.nii.gz
+│       │   ├── S305T1.nii.gz
+│       │   ├── S306T1-label.nii.gz
+│       │   ├── S306T1.nii.gz
+│       │   ├── S307T1-label.nii.gz
+│       │   ├── S307T1.nii.gz
+│       │   ├── S310T1-label.nii.gz
+│       │   ├── S310T1.nii.gz
+│       │   ├── S311T1-label.nii.gz
+│       │   ├── S311T1.nii.gz
+│       │   ├── S312T1-label.nii.gz
+│       │   ├── S312T1.nii.gz
+│       │   ├── S313T1-label.nii.gz
+│       │   ├── S313T1.nii.gz
+│       │   ├── S314T1-label.nii.gz
+│       │   ├── S314T1.nii.gz
+│       │   ├── S318T1-label.nii.gz
+│       │   ├── S318T1.nii.gz
+│       │   ├── S319T1-label.nii.gz
+│       │   ├── S319T1.nii.gz
+│       │   ├── S320T1-label.nii.gz
+│       │   ├── S320T1.nii.gz
+│       │   ├── S321T1-label.nii.gz
+│       │   ├── S321T1.nii.gz
+│       │   ├── S322T1-label.nii.gz
+│       │   ├── S322T1.nii.gz
+│       │   ├── S323T1-label.nii.gz
+│       │   ├── S323T1.nii.gz
+│       │   ├── S324T1-label.nii.gz
+│       │   ├── S324T1.nii.gz
+│       │   ├── S325T1-label.nii.gz
+│       │   ├── S325T1.nii.gz
+│       │   ├── S326T1-label.nii.gz
+│       │   ├── S326T1.nii.gz
+│       │   ├── S327T1-label.nii.gz
+│       │   ├── S327T1.nii.gz
+│       │   ├── S328T1-label.nii.gz
+│       │   ├── S328T1.nii.gz
+│       │   ├── S329T1-label.nii.gz
+│       │   ├── S329T1.nii.gz
+│       │   ├── S330bT1-label.nii.gz
+│       │   ├── S330bT1.nii.gz
+│       │   ├── S330T1-label.nii.gz
+│       │   ├── S330T1.nii.gz
+│       │   ├── S331T1-label.nii.gz
+│       │   ├── S331T1.nii.gz
+│       │   ├── S332T1-label.nii.gz
+│       │   ├── S332T1.nii.gz
+│       │   ├── S333T1-label.nii.gz
+│       │   ├── S333T1.nii.gz
+│       │   ├── S334T1-label.nii.gz
+│       │   ├── S334T1.nii.gz
+│       │   ├── S335T1-label.nii.gz
+│       │   ├── S335T1.nii.gz
+│       │   ├── S336T1-label.nii.gz
+│       │   ├── S336T1.nii.gz
+│       │   ├── S337T1-label.nii.gz
+│       │   ├── S337T1.nii.gz
+│       │   ├── S338T1-label.nii.gz
+│       │   ├── S338T1.nii.gz
+│       │   ├── S339T1-label.nii.gz
+│       │   ├── S339T1.nii.gz
+│       │   ├── S340T1-label.nii.gz
+│       │   ├── S340T1.nii.gz
+│       │   ├── S341T1-label.nii.gz
+│       │   ├── S341T1.nii.gz
+│       │   ├── S342T1-label.nii.gz
+│       │   ├── S342T1.nii.gz
+│       │   ├── S343T1-label.nii.gz
+│       │   ├── S343T1.nii.gz
+│       │   ├── S344T1-label.nii.gz
+│       │   ├── S344T1.nii.gz
+│       │   ├── S345T1-label.nii.gz
+│       │   ├── S345T1.nii.gz
+│       │   ├── S346T1-label.nii.gz
+│       │   ├── S346T1.nii.gz
+│       │   ├── S347T1-label.nii.gz
+│       │   ├── S347T1.nii.gz
+│       │   ├── S348T1-label.nii.gz
+│       │   └── S348T1.nii.gz
+│       └── T2
+│           ├── S001ASTIR-label.nii.gz
+│           ├── S001STIR.nii.gz
+│           ├── S002ASTIR-label.nii.gz
+│           ├── S002STIR.nii.gz
+│           ├── S003STIR-label.nii.gz
+│           ├── S003STIR.nii.gz
+│           ├── S004ASTIR-label.nii.gz
+│           ├── S004STIR.nii.gz
+│           ├── S005ASTIR-label.nii.gz
+│           ├── S005STIR.nii.gz
+│           ├── S006ASTIR-label.nii.gz
+│           ├── S006STIR.nii.gz
+│           ├── S007STIR-label.nii.gz
+│           ├── S007STIR.nii.gz
+│           ├── S008STIR_ax.nii.gz
+│           ├── S008STIR-label_ax.nii.gz
+│           ├── S015ASTIR-label.nii.gz
+│           ├── S015STIR.nii.gz
+│           ├── S018ASTIR-label.nii.gz
+│           ├── S018STIR.nii.gz
+│           ├── S019STIR-label.nii.gz
+│           ├── S019STIR.nii.gz
+│           ├── S020STIR-label.nii.gz
+│           ├── S020STIR.nii.gz
+│           ├── S022STIR_ax.nii.gz
+│           ├── S022STIR-label_ax.nii.gz
+│           ├── S023ASTIR-label.nii.gz
+│           ├── S023STIR.nii.gz
+│           ├── S024STIR-label.nii.gz
+│           ├── S024STIR.nii.gz
+│           ├── S026STIR-label.nii.gz
+│           ├── S026STIR.nii.gz
+│           ├── S027ASTIR-label.nii.gz
+│           ├── S027STIR.nii.gz
+│           ├── S030ASTIR-label.nii.gz
+│           ├── S030STIR.nii.gz
+│           ├── S031ASTIR-label.nii.gz
+│           ├── S031STIR.nii.gz
+│           ├── S032STIR_ax.nii.gz
+│           ├── S032STIR-label_ax.nii.gz
+│           ├── S033STIR-label.nii.gz
+│           ├── S033STIR.nii.gz
+│           ├── S034STIR_ax.nii.gz
+│           ├── S034STIR-label_ax.nii.gz
+│           ├── S035STIR-label.nii.gz
+│           ├── S035STIR.nii.gz
+│           ├── S036STIR-label.nii.gz
+│           ├── S036STIR.nii.gz
+│           ├── S037STIR-label.nii.gz
+│           ├── S037STIR.nii.gz
+│           ├── S038STIR_ax.nii.gz
+│           ├── S038STIR-label_ax.nii.gz
+│           ├── S039ASTIR-label.nii.gz
+│           ├── S039STIR.nii.gz
+│           ├── S040ASTIR-label.nii.gz
+│           ├── S040STIR.nii.gz
+│           ├── S041ASTIR-label.nii.gz
+│           ├── S041STIR.nii.gz
+│           ├── S043STIR-label.nii.gz
+│           ├── S043STIR.nii.gz
+│           ├── S046STIR-label.nii.gz
+│           ├── S046STIR.nii.gz
+│           ├── S047STIR-label.nii.gz
+│           ├── S047STIR.nii.gz
+│           ├── S050STIR_ax.nii.gz
+│           ├── S050STIR-label_ax.nii.gz
+│           ├── S053STIR-label.nii.gz
+│           ├── S053STIR.nii.gz
+│           ├── S070STIR_ax.nii.gz
+│           ├── S070STIR-label_ax.nii.gz
+│           ├── S074STIR-label.nii.gz
+│           ├── S074STIR.nii.gz
+│           ├── S076STIR-label.nii.gz
+│           ├── S076STIR.nii.gz
+│           ├── S082STIR-label.nii.gz
+│           ├── S082STIR.nii.gz
+│           ├── S083STIR-label.nii.gz
+│           ├── S083STIR.nii.gz
+│           ├── S084STIR-label.nii.gz
+│           ├── S084STIR.nii.gz
+│           ├── S090STIR-label.nii.gz
+│           ├── S090STIR.nii.gz
+│           ├── S096STIR-label.nii.gz
+│           ├── S096STIR.nii.gz
+│           ├── S107STIR-label.nii.gz
+│           ├── S107STIR.nii.gz
+│           ├── S126STIR_ax.nii.gz
+│           ├── S126STIR-label_ax.nii.gz
+│           ├── S130STIR_ax.nii.gz
+│           ├── S130STIR-label_ax.nii.gz
+│           ├── S134STIR-label.nii.gz
+│           ├── S134STIR.nii.gz
+│           ├── S144STIR-label_sag.nii.gz
+│           ├── S144STIR_sag.nii.gz
+│           ├── S148STIR-label.nii.gz
+│           ├── S148STIR.nii.gz
+│           ├── S154STIR-label.nii.gz
+│           ├── S154STIR.nii.gz
+│           ├── S156STIR-label.nii.gz
+│           ├── S156STIR.nii.gz
+│           ├── S161ASTIR-label.nii.gz
+│           ├── S161STIR.nii.gz
+│           ├── S167ASTIR-label.nii.gz
+│           ├── S167STIR.nii.gz
+│           ├── S191STIR-label.nii.gz
+│           ├── S191STIR.nii.gz
+│           ├── S194STIR-label.nii.gz
+│           ├── S194STIR.nii.gz
+│           ├── S202STIR_ax.nii.gz
+│           ├── S202STIR-label_ax.nii.gz
+│           ├── S203STIR-label.nii.gz
+│           ├── S203STIR.nii.gz
+│           ├── S205STIR_ax.nii.gz
+│           ├── S205STIR-label_ax.nii.gz
+│           ├── S206STIR_ax.nii.gz
+│           ├── S206STIR-label_ax.nii.gz
+│           ├── S207STIR-label.nii.gz
+│           ├── S207STIR.nii.gz
+│           ├── S208STIR-label.nii.gz
+│           ├── S208STIR.nii.gz
+│           ├── S209STIR-label.nii.gz
+│           ├── S209STIR.nii.gz
+│           ├── S210STIR-label.nii.gz
+│           ├── S210STIR.nii.gz
+│           ├── S211STIR_ax.nii.gz
+│           ├── S211STIR-label_ax.nii.gz
+│           ├── S212STIR-label.nii.gz
+│           ├── S212STIR.nii.gz
+│           ├── S213STIR-label_sag.nii.gz
+│           ├── S213STIR_sag.nii.gz
+│           ├── S215STIR-label_sag.nii.gz
+│           ├── S215STIR_sag.nii.gz
+│           ├── S216STIR-label.nii.gz
+│           ├── S216STIR.nii.gz
+│           ├── S217STIR-label.nii.gz
+│           ├── S217STIR.nii.gz
+│           ├── S218STIR-label.nii.gz
+│           ├── S218STIR.nii.gz
+│           ├── S219STIR-label.nii.gz
+│           ├── S219STIR.nii.gz
+│           ├── S220STIR_ax.nii.gz
+│           ├── S220STIR-label_ax.nii.gz
+│           ├── S221STIR-label.nii.gz
+│           ├── S221STIR.nii.gz
+│           ├── S222STIR_ax.nii.gz
+│           ├── S222STIR-label_ax.nii.gz
+│           ├── S223STIR-label.nii.gz
+│           ├── S223STIR.nii.gz
+│           ├── S226STIR-label.nii.gz
+│           ├── S226STIR.nii.gz
+│           ├── S227STIR-label.nii.gz
+│           ├── S227STIR.nii.gz
+│           ├── S229STIR-label.nii.gz
+│           ├── S229STIR.nii.gz
+│           ├── S230STIR-label.nii.gz
+│           ├── S230STIR.nii.gz
+│           ├── S231STIR_ax.nii.gz
+│           ├── S231STIR-label_ax.nii.gz
+│           ├── S236STIR-label.nii.gz
+│           ├── S236STIR.nii.gz
+│           ├── S241STIR-label.nii.gz
+│           ├── S241STIR.nii.gz
+│           ├── S244STIR-label.nii.gz
+│           ├── S244STIR.nii.gz
+│           ├── S245STIR-label.nii.gz
+│           ├── S245STIR.nii.gz
+│           ├── S248STIR-label.nii.gz
+│           ├── S248STIR.nii.gz
+│           ├── S252STIR-label.nii.gz
+│           ├── S252STIR.nii.gz
+│           ├── S254STIR-label.nii.gz
+│           ├── S254STIR.nii.gz
+│           ├── S257STIR-label.nii.gz
+│           ├── S257STIR.nii.gz
+│           ├── S258STIR-label.nii.gz
+│           ├── S258STIR.nii.gz
+│           ├── S300STIR-label.nii.gz
+│           ├── S300STIR.nii.gz
+│           ├── S301STIR-label.nii.gz
+│           ├── S301STIR.nii.gz
+│           ├── S302STIR-label.nii.gz
+│           ├── S302STIR.nii.gz
+│           ├── S303STIR-label.nii.gz
+│           ├── S303STIR.nii.gz
+│           ├── S304STIR-label.nii.gz
+│           ├── S304STIR.nii.gz
+│           ├── S305STIR-label.nii.gz
+│           ├── S305STIR.nii.gz
+│           ├── S306STIR-label.nii.gz
+│           ├── S306STIR.nii.gz
+│           ├── S307STIR-label.nii.gz
+│           ├── S307STIR.nii.gz
+│           ├── S310STIR-label.nii.gz
+│           ├── S310STIR.nii.gz
+│           ├── S311STIR-label.nii.gz
+│           ├── S311STIR.nii.gz
+│           ├── S312STIR-label.nii.gz
+│           ├── S312STIR.nii.gz
+│           ├── S313STIR-label.nii.gz
+│           ├── S313STIR.nii.gz
+│           ├── S314STIR-label.nii.gz
+│           ├── S314STIR.nii.gz
+│           ├── S318STIR-label.nii.gz
+│           ├── S318STIR.nii.gz
+│           ├── S319STIR-label.nii.gz
+│           ├── S319STIR.nii.gz
+│           ├── S320STIR-label.nii.gz
+│           ├── S320STIR.nii.gz
+│           ├── S321STIR-label.nii.gz
+│           ├── S321STIR.nii.gz
+│           ├── S322STIR-label.nii.gz
+│           ├── S322STIR.nii.gz
+│           ├── S323STIR-label.nii.gz
+│           ├── S323STIR.nii.gz
+│           ├── S324STIR-label.nii.gz
+│           ├── S324STIR.nii.gz
+│           ├── S325STIR-label.nii.gz
+│           ├── S325STIR.nii.gz
+│           ├── S326STIR-label.nii.gz
+│           ├── S326STIR.nii.gz
+│           ├── S327STIR-label.nii.gz
+│           ├── S327STIR.nii.gz
+│           ├── S328STIR-label.nii.gz
+│           ├── S328STIR.nii.gz
+│           ├── S329STIR-label.nii.gz
+│           ├── S329STIR.nii.gz
+│           ├── S330bSTIR-label.nii.gz
+│           ├── S330bSTIR.nii.gz
+│           ├── S330STIR-label.nii.gz
+│           ├── S330STIR.nii.gz
+│           ├── S331STIR-label.nii.gz
+│           ├── S331STIR.nii.gz
+│           ├── S332STIR-label.nii.gz
+│           ├── S332STIR.nii.gz
+│           ├── S333STIR-label.nii.gz
+│           ├── S333STIR.nii.gz
+│           ├── S334STIR-label.nii.gz
+│           ├── S334STIR.nii.gz
+│           ├── S335STIR-label.nii.gz
+│           ├── S335STIR.nii.gz
+│           ├── S336STIR-label.nii.gz
+│           ├── S336STIR.nii.gz
+│           ├── S337STIR-label.nii.gz
+│           ├── S337STIR.nii.gz
+│           ├── S338STIR-label.nii.gz
+│           ├── S338STIR.nii.gz
+│           ├── S339STIR-label.nii.gz
+│           ├── S339STIR.nii.gz
+│           ├── S340STIR-label.nii.gz
+│           ├── S340STIR.nii.gz
+│           ├── S341STIR-label.nii.gz
+│           ├── S341STIR.nii.gz
+│           ├── S342STIR-label.nii.gz
+│           ├── S342STIR.nii.gz
+│           ├── S343STIR-label.nii.gz
+│           ├── S343STIR.nii.gz
+│           ├── S344STIR-label.nii.gz
+│           ├── S344STIR.nii.gz
+│           ├── S345STIR-label.nii.gz
+│           ├── S345STIR.nii.gz
+│           ├── S346STIR-label.nii.gz
+│           ├── S346STIR.nii.gz
+│           ├── S347STIR-label.nii.gz
+│           ├── S347STIR.nii.gz
+│           ├── S348STIR-label.nii.gz
+│           └── S348STIR.nii.gz
+└── sarcoma.zip
 
-├── data
-│   ├── CRC100K
-│   │   ├── all
-│   │   │   ├── ADI-TCGA-EENSRDNW.png
-│   │   │   ├── ADI-TCGA-IVLMQINC.png
-│   │   │   ├── ADI-TCGA-TWHICYLF.png
-│   │   │   ├── ADI-TCGA-VSNYDMDA.png
-│   │   │   ├── CRC100K_all_dataset.csv
-│   │   ├── binary
-│   │   │   ├── CRC100K_all_data.csv
-│   │   │   ├── CRC100K_blanced_binary_.csv
-│   │   │   ├── CRC100K_dataset.csv
-│   │   │   ├── CRC100K_test_dataset.csv
-│   │   │   ├── labels.json
-│   │   │   └── small
-│   │   └── multiclass
-│   │       ├── CRC100K_all_data.csv
-│   │       ├── CRC100K_balanced_data.csv
-│   │       ├── CRC100K_dataset.csv
-│   │       ├── CRC100K_test_dataset.csv
-│   │       ├── labels.json
-│   │       └── small
-│   ├── NCT-CRC-HE-100K
-│   │   └── NCT-CRC-HE-100K-png
-│   │       ├── ADI-AAAMHQMK.png
-│   │       ├── ADI-AACCGLYD.png
-│   │       ├── ADI-AACVGRFT.png
-│   │       ├── ADI-AADGNDRG.png
-│   │       ├── ADI-AAEKWPVP.pn
-
-│   └── tumor
-│       ├── all
-│       │   ├── N10.jpg
-│       │   ├── N67.jpg
-│       │   ├── N68.jpg
-│       │   ├── N69.jpg
-│       │   ├── N6.jpg
-│       │   ├── N70.jpg
-│       │   ├── N71.jpg
-│       │   ├── N72.jpg
-│       │   ├── N73.jpg
-│       │   ├── N74.jpg
-│       │   ├── N7.jpg
-│       │   ├── N8.jpg
-│       │   ├── N9.jpg
-│       │   ├── P10.jpg
-│       │   └── tumor_all_dataset.csv
-│       ├── negative
-│       │   ├── N10.jpg
-│       │   
-│       ├── positive
-│       │   
-│       │   ├── P48.jpg
-│       │   └── P9.jpg
-│       ├── test
-│       │   ├── labels.json
-│       │   ├── N1.jpg
-│       │   ├── N2.jpg
-│       │   ├── N3.jpg
-│       │   ├── N4.jpg
-│       │   ├── P1.jpg
-│       │   ├── P2.jpg
-│       │   ├── P3.jpg
-│       │   └── P4.jpg
-│       ├── tumor_dataset.csv
-│       └── tumor_test_dataset.csv
+8 directories, 1198 files

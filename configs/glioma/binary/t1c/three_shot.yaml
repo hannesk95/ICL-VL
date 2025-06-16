@@ -1,0 +1,32 @@
+project: glioma
+mode: three_shot
+classification_type: binary
+
+data:
+  train_csv: "data/glioma/binary/glioma_dataset.csv"
+  test_csv: "data/glioma/binary/glioma_test_dataset.csv"
+  save_path: ./results/${project}/${classification_type}/${mode}/
+  num_shots: 3
+  batch_size: 1
+  randomize_few_shot: false
+  seed: 40
+  num_test_images: 10
+  randomize_test_images: true
+  test_seed: 40
+  labels_path: "data/glioma/binary/labels.json"
+
+model:
+  model_name: gemini-2.0-flash
+  model_kwargs:
+    temperature: 0.7
+    top_p: 0.95
+    max_output_tokens: 1024
+
+user_args:
+  prompt_path: "./prompts/glioma/few_shot.txt"
+  verbose: true
+  debug: false
+
+classification:
+  type: ${classification_type}
+  labels: ["class1", "class2"]

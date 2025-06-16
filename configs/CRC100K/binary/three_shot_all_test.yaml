@@ -1,0 +1,90 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Project-level information
+# ──────────────────────────────────────────────────────────────────────────────
+project: CRC100K
+mode:    five_shot          # one_shot | five_shot | …
+classification_type: binary # binary  | multiclass
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Data section
+# ──────────────────────────────────────────────────────────────────────────────
+data:
+  # CSVs for the canonical training and test splits
+  train_csv:  "data/CRC100K/binary/CRC100K_dataset.csv"
+  test_csv:   "data/CRC100K/binary/CRC100K_test_dataset.csv"
+
+  # Where to write results
+  save_path:  "./results/${project}/${classification_type}/${mode}/"
+
+  # Few-shot settings
+  num_shots:             3     # images per class
+  randomize_few_shot:    false
+  seed:                  40
+
+  # Few-shot image-selection strategy
+  sampling_strategy: random            # random | knn
+  knn_csv_path:      "data/CRC100K/binary/knn_32.csv"
+  knn_top_k:         3
+
+  # Balanced test subset
+  num_test_images:        40
+  randomize_test_images:  true
+  test_seed:              40
+
+  # Optional ground-truth JSON for automatic metrics
+  labels_path: "data/CRC100K/binary/labels.json"
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Model parameters
+# ──────────────────────────────────────────────────────────────────────────────
+model:
+  #
+  # Choose the LMM you want to call.
+  # Supported:
+  #   - gemini-2.0-flash
+  #   - medflamingo
+  #
+  name: gemini-2.0-flash      
+
+  # Model-specific kwargs live here; keep them model-agnostic where possible
+  # and overload inside your loading code if a key is irrelevant.
+  kwargs:
+    temperature:        0.7
+    top_p:              0.95
+    max_output_tokens:  1024
+    # MedFlamingo example extras (ignored for Gemini):
+    # vision_encoder_name: openai/clip-vit-large-patch14
+    # freeze_vision_encoder: true
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Image-input options (NEW)
+# ──────────────────────────────────────────────────────────────────────────────
+image_input:
+  #
+  # How to build the 3-channel tensor the LMM will see.
+  # Supported values (extend as you add pipelines):
+  #   - stack_single      → [slice, slice, slice]
+  #   - mip               → [MIP, MIP, MIP]
+  #   - neighbour_slices  → central, −k, +k
+  #
+  representation: stack_single      # default
+
+  # Extra parameters used by some strategies
+  mip_axis:          z              # if representation == mip
+  neighbour_offset:  1              # if representation == neighbour_slices
+  
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Runtime/user tweaks
+# ──────────────────────────────────────────────────────────────────────────────
+user_args:
+  prompt_path: "./prompts/CRC100K/binary/few_shot.txt"
+  verbose: true
+  debug:   false
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Logical view of the task
+# ──────────────────────────────────────────────────────────────────────────────
+classification:
+  type:   ${classification_type}
+  labels: ["Tumor", "No Tumor"]

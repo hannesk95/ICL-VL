@@ -12,7 +12,7 @@ from PIL import Image
 from config import load_config
 from dataset import CSVDataset
 from model import configure_gemini, build_gemini_prompt, gemini_api_call
-from sampler import build_balanced_indices
+from sampler2 import build_balanced_indices
 
 # ------------------------------------------------------------
 # optional k-NN retriever (only used if YAML says enable: true)

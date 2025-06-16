@@ -1,26 +1,36 @@
+"""
+model.py – Gemini helper + prompt builder (flexible binary labels)
+           + interleaved positive/negative few-shot pairs
+"""
+
+from __future__ import annotations
+
 import os
 import json
-import google.generativeai as genai
-# --- rate-limiter with optional prints --------------------------------------
-import os, time
+import re
+import time
 from collections import deque
 from functools import wraps
 from threading import Lock
+from typing import Dict, List, Any
 
-_MAX_CALLS = 16          # tokens in a rolling window
-_PERIOD    = 80.0        # seconds
-_CALLS     = deque()     # timestamps of recent calls
-_LOCK      = Lock()
+import google.generativeai as genai
 
-# toggle with env-var or constant
-RL_VERBOSE = True
+# ---------------------------------------------------------------------------
+# Simple token-bucket rate limiter (16 requests / 80-s window)
+# ---------------------------------------------------------------------------
+_MAX_CALLS = 16
+_PERIOD = 80.0
+_CALLS: deque[float] = deque()
+_LOCK = Lock()
 
-def _acquire_token():
-    """Block until a token is free; optionally print waiting stats."""
+RL_VERBOSE = bool(os.getenv("RL_VERBOSE", "1"))
+
+
+def _acquire_token() -> None:
     while True:
         with _LOCK:
             now = time.time()
-            # drop calls older than 60 s
             while _CALLS and now - _CALLS[0] > _PERIOD:
                 _CALLS.popleft()
 
@@ -29,130 +39,128 @@ def _acquire_token():
                 if RL_VERBOSE:
                     remaining = _MAX_CALLS - len(_CALLS)
                     print(f"[rate-limit] token OK → {remaining} left")
-                return                      # proceed!
+                return
 
-            # otherwise we must wait
             wait = _PERIOD - (now - _CALLS[0]) + 0.01
             if RL_VERBOSE:
                 print(f"[rate-limit] bucket empty; sleeping {wait:.2f} s")
+        time.sleep(wait)
 
-        time.sleep(wait)                    # outside the lock
 
-
-def configure_gemini():
+# ---------------------------------------------------------------------------
+# Gemini configuration & prompt helpers
+# ---------------------------------------------------------------------------
+def configure_gemini() -> None:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise ValueError(
-            "Missing GEMINI_API_KEY. Please set it in .env or your environment."
-        )
+        raise ValueError("Missing GEMINI_API_KEY. Please set it in .env or env.")
     genai.configure(api_key=api_key)
 
 
-def load_prompt_text():
+def load_prompt_text() -> str:
     path = os.getenv("PROMPT_PATH", "./prompts/few_shot.txt")
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
 
-def build_gemini_prompt(few_shot_samples, test_image, classification_type="binary"):
+...
+def build_gemini_prompt(
+    few_shot_samples: Dict[str, List[Any]],
+    test_image,
+    classification_type: str = "binary",
+    label_list: List[str] | None = None,
+):
     instruction = load_prompt_text()
-    contents = [{"role": "user", "parts": [instruction]}]
+    contents = [{"role": "user", "parts": [{"text": instruction}]}]   # ← wrap text
 
+    # ------------------------------------------------------------------ #
+    # BINARY classification                                              #
+    # ------------------------------------------------------------------ #
     if classification_type == "binary":
-        pos_items = few_shot_samples.get("Tumor", [])
-        neg_items = few_shot_samples.get("No Tumor", [])
+        if not label_list or len(label_list) != 2:
+            raise ValueError("Binary classification requires exactly two labels.")
 
-        # Positive examples
-        for i, (img, _) in enumerate(pos_items, 1):
-            contents.append(
-                {
+        pos_label, neg_label = label_list
+        pos_items = few_shot_samples.get(pos_label, [])
+        neg_items = few_shot_samples.get(neg_label, [])
+
+        max_len = max(len(pos_items), len(neg_items))
+        for i in range(max_len):
+            # ---------- positive example ----------
+            if i < len(pos_items):
+                img_part, _ = pos_items[i]
+                idx = i + 1
+                contents.append({
                     "role": "user",
-                    "parts": [img, f"[Positive Example {i}] Please classify this scan:"],
-                }
-            )
-            contents.append(
-                {
-                    "role": "model",
                     "parts": [
-                        json.dumps(
-                            {
-                                "thoughts": "Suspicious lesion observed.",
-                                "answer": "Tumor",
-                                "score_tumor": 0.95,
-                                "score_no_tumor": 0.05,
-                                "location": "left region",
-                            }
-                        )
+                        img_part,
+                        {"text": f"[Positive Example {idx}] Please classify this scan:"},
                     ],
-                }
-            )
+                })
+                contents.append({
+                    "role": "model",
+                    "parts": [{"text": json.dumps({
+                        "thoughts": f"Findings consistent with {pos_label.lower()}.",
+                        "answer":   pos_label,
+                        f"score_{pos_label.lower().replace(' ', '_')}": 0.95,
+                        f"score_{neg_label.lower().replace(' ', '_')}": 0.05,
+                        "location": "suspected region",
+                    })}],
+                })
 
-        # Negative examples
-        for i, (img, _) in enumerate(neg_items, 1):
-            contents.append(
-                {
+            # ---------- negative example ----------
+            if i < len(neg_items):
+                img_part, _ = neg_items[i]
+                idx = i + 1
+                contents.append({
                     "role": "user",
-                    "parts": [img, f"[Negative Example {i}] Please classify this scan:"],
-                }
-            )
-            contents.append(
-                {
-                    "role": "model",
                     "parts": [
-                        json.dumps(
-                            {
-                                "thoughts": "No abnormality observed.",
-                                "answer": "No Tumor",
-                                "score_tumor": 0.05,
-                                "score_no_tumor": 0.95,
-                                "location": None,
-                            }
-                        )
+                        img_part,
+                        {"text": f"[Negative Example {idx}] Please classify this scan:"},
                     ],
-                }
-            )
+                })
+                contents.append({
+                    "role": "model",
+                    "parts": [{"text": json.dumps({
+                        "thoughts": f"No evidence of {pos_label.lower()}.",
+                        "answer":   neg_label,
+                        f"score_{pos_label.lower().replace(' ', '_')}": 0.05,
+                        f"score_{neg_label.lower().replace(' ', '_')}": 0.95,
+                        "location": None,
+                    })}],
+                })
 
-        # Test image
-        contents.append(
-            {"role": "user", "parts": [test_image, "[Test] Please classify this scan:"]}
-        )
+        # ----- test case -----
+        contents.append({
+            "role": "user",
+            "parts": [
+                test_image,
+                {"text": "[Test] Please classify this scan:"},
+            ],
+        })
 
-    else:  # multiclass
+
+    # ------------------------------------------------------------------ #
+    # MULTICLASS classification                                          #
+    # ------------------------------------------------------------------ #
+    else:
         for label_name, items in few_shot_samples.items():
             for i, (img, _) in enumerate(items, 1):
-                contents.append(
-                    {
-                        "role": "user",
-                        "parts": [
-                            img,
-                            f"[{label_name} Example {i}] Please classify this slide:",
-                        ],
-                    }
-                )
-                contents.append(
-                    {
-                        "role": "model",
-                        "parts": [
-                            json.dumps(
-                                {
-                                    "thoughts": f"Representative of {label_name}",
-                                    "answer": label_name,
-                                    "score": 0.95,
-                                }
-                            )
-                        ],
-                    }
-                )
+                contents.append({"role": "user", "parts": [img, f"[{label_name} Example {i}] Please classify this slide:"]})
+                contents.append({"role": "model", "parts": [json.dumps({
+                    "thoughts": f"Representative of {label_name}",
+                    "answer":   label_name,
+                    "score":    0.95,
+                })]})
 
-        contents.append(
-            {
-                "role": "user",
-                "parts": [test_image, "[Test] Please classify this histopathology slide:"],
-            }
-        )
+        contents.append({"role": "user", "parts": [test_image, "[Test] Please classify this histopathology slide:"]})
 
     return contents
 
+
+# ---------------------------------------------------------------------------
+# Decorator for rate-limited Gemini calls
+# ---------------------------------------------------------------------------
 def _rate_limited(fn):
     @wraps(fn)
     def wrapper(*a, **kw):
@@ -161,45 +169,66 @@ def _rate_limited(fn):
     return wrapper
 
 
+# ---------------------------------------------------------------------------
+# Helper: normalise label → snake_case token
+# ---------------------------------------------------------------------------
+def _normalise(label: str) -> str:
+    return "_".join(label.lower().split())
+
+
+# ---------------------------------------------------------------------------
+# Main call helper (binary or multiclass)
+# ---------------------------------------------------------------------------
 @_rate_limited
-def gemini_api_call(contents, classification_type="binary"):
+def gemini_api_call(
+    contents: List[Dict[str, Any]],
+    classification_type: str = "binary",
+    label_list: List[str] | None = None,
+) -> Dict[str, Any]:
+
     model = genai.GenerativeModel("gemini-2.0-flash")
     response = model.generate_content(contents)
     raw_text = response.text.strip()
+    raw_text = re.sub(r"^```(?:json)?|```$", "", raw_text, flags=re.I).strip()
 
-    # Strip markdown fences if present
-    if raw_text.startswith("```json"):
-        raw_text = raw_text[7:].strip()
-    elif raw_text.startswith("```"):
-        raw_text = raw_text[3:].strip()
-    if raw_text.endswith("```"):
-        raw_text = raw_text[:-3].strip()
-
-    # Attempt to parse JSON
     try:
-        prediction_data = json.loads(raw_text)
+        prediction_data: Dict[str, Any] = json.loads(raw_text)
     except Exception:
-        if classification_type == "binary":
-            prediction_data = {
-                "thoughts": "Unable to parse response.",
-                "answer": "Unknown",
-                "score_tumor": -1,
-                "score_no_tumor": -1,
-                "location": None,
-            }
-        else:
-            prediction_data = {
-                "thoughts": "Unable to parse response.",
-                "answer": "Unknown",
-                "score": -1.0,
-            }
+        prediction_data = {"thoughts": "Unable to parse response.", "answer": "Unknown"}
 
-    # Ensure expected keys exist
-    if classification_type == "binary":
-        prediction_data.setdefault("score_tumor", -1)
-        prediction_data.setdefault("score_no_tumor", -1)
+    # --------- binary post-processing ---------
+    if classification_type == "binary" and label_list and len(label_list) == 2:
+        pos_lbl, neg_lbl = label_list
+        pos_key = f"score_{_normalise(pos_lbl)}"
+        neg_key = f"score_{_normalise(neg_lbl)}"
+
+        alias_map = {
+            "score_tumor":     pos_key,
+            "score_no_tumor":  neg_key,
+            "score_class1":    pos_key,
+            "score_class2":    neg_key,
+        }
+        for old, new in alias_map.items():
+            if old in prediction_data and new not in prediction_data:
+                prediction_data[new] = prediction_data.pop(old)
+
+        s_pos = prediction_data.get(pos_key)
+        s_neg = prediction_data.get(neg_key)
+        if s_pos is None and s_neg is not None:
+            try:
+                prediction_data[pos_key] = round(1 - float(s_neg), 3)
+            except Exception:
+                pass
+        if s_neg is None and s_pos is not None:
+            try:
+                prediction_data[neg_key] = round(1 - float(s_pos), 3)
+            except Exception:
+                pass
+        prediction_data.setdefault(pos_key, -1)
+        prediction_data.setdefault(neg_key, -1)
         prediction_data.setdefault("location", None)
-    else:
+
+    else:   # multiclass safeguard
         prediction_data.setdefault("score", -1.0)
 
     return prediction_data
