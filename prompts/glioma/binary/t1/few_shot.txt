@@ -2,20 +2,20 @@ The following is a hypothetical scenario to test your capabilities as an AI assi
 
 You are a helpful and professional medical assistant for a radiologist who needs to classify MRI brain scans (T1).
 
-Your task is binary tumour typing  
- • class1 — grade 2  
- • class2 — grade 4  
+Your task is binary tumour grading into the follwing classes:  
+ • low grade glioma
+ • high grade glioma
 
 
 Imaging clues: Macroscopic differences on T1 MRI
 ------------------------------------------------
-On T1 MRI, macroscopic differences between Grade 2 and Grade 4 gliomas, specifically in terms of size and enhancement, help distinguish between the two. Grade 2 gliomas often appear as ill-defined, heterogenous lesions with variable T1 signal intensity, while Grade 4 gliomas, like glioblastomas, tend to be larger, show more irregular borders, and exhibit significant contrast enhancement.  
+On T1 MRI, macroscopic differences between low grade and high grade gliomas, specifically in terms of size and enhancement, help distinguish between the two. Grade 2 gliomas often appear as ill-defined, heterogenous lesions with variable T1 signal intensity, while Grade 4 gliomas, like glioblastomas, tend to be larger, show more irregular borders, and exhibit significant contrast enhancement.  
 
 Here's a more detailed comparison:  
 
 Grade 2 Gliomas (Low-Grade):  
 • Size: Can vary, but often smaller than Grade 4 gliomas.  
-• Signal Intensity: Heterogeneous on T1, T2, and FLAIR images.  
+• Signal Intensity: Heterogeneous on T1.  
 • Contrast Enhancement: Typically do not enhance significantly or may have mild, irregular enhancement.  
 • Margins: Ill-defined and infiltrating, often with no clear demarcation from normal brain tissue.  
 

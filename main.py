@@ -1,5 +1,5 @@
 # main.py – flexible binary labels **without legacy tumor/no_tumor keys**
-#           + small-image few-shot transform
+#           + high-res few-shot transform & model-kwargs support
 
 import os
 import json
@@ -21,7 +21,7 @@ def main() -> None:
     # Load YAML config & env                                             #
     # ------------------------------------------------------------------ #
     load_dotenv()
-    config = load_config("configs/glioma/binary/t1/three_shot.yaml")
+    config = load_config("configs/glioma/binary/t2/three_shot.yaml")
 
     test_csv   = config["data"]["test_csv"]
     save_path  = config["data"]["save_path"]
@@ -40,12 +40,15 @@ def main() -> None:
     # ------------------------------------------------------------------ #
     # Gemini & transforms                                                #
     # ------------------------------------------------------------------ #
-    configure_gemini()
+    # Pass the model block so that temperature / top-p / max tokens
+    # actually reach the GenerativeModel constructor.
+    configure_gemini(config.get("model", {}))
 
-    transform = T.Compose([T.ToTensor()])          # full-res test images
-    few_shot_transform = T.Compose([               # tiny demo images
-        T.Resize(512, antialias=True),
-        T.ToTensor(),
+    transform = T.Compose([T.ToTensor()])   # full-resolution test images
+
+    # HIGH-RES DEMO IMAGES – no forced resize any more
+    few_shot_transform = T.Compose([
+        T.ToTensor(),                       # keep original resolution
     ])
 
     # ------------------------------------------------------------------ #
@@ -60,11 +63,14 @@ def main() -> None:
         randomize=config["data"].get("randomize_test_images", True),
         seed=config["data"].get("test_seed", 42),
     )
-    test_loader = DataLoader(Subset(full_test_ds, balanced_indices),
-                             batch_size=1, shuffle=False)
+    test_loader = DataLoader(
+        Subset(full_test_ds, balanced_indices),
+        batch_size=1,
+        shuffle=False,
+    )
 
     # ------------------------------------------------------------------ #
-    # Few-shot pool (uses small transform)                               #
+    # Few-shot pool (uses high-res transform)                            #
     # ------------------------------------------------------------------ #
     few_shot_samples = build_few_shot_samples(
         config=config,
@@ -77,7 +83,7 @@ def main() -> None:
     for lbl in label_list:
         print(f"  [{lbl}]")
         for _, p in few_shot_samples[lbl]:
-            print(f"    − {p}")
+            print(f"    – {p}")
 
     # ------------------------------------------------------------------ #
     # Inference loop                                                     #

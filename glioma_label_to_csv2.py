@@ -4,7 +4,7 @@ import re
 
 # Load files
 csv_path = 'same_rgb_images.csv'
-json_path = 'data/glioma/binary/t1/labels.json'
+json_path = 'data/glioma/binary/t2/labels.json'
 
 df = pd.read_csv(csv_path)
 with open(json_path, 'r') as f:

@@ -40,6 +40,11 @@ python image_strategies.py \
   --input_dir  data/glioma/glioma_four_sequences \
   --output_dir data/glioma/png_T1 \
   --img_suffix _T1_bias
+  
+python image_strategies_glioma.py \
+  --input_dir  data/glioma/glioma_four_sequences \
+  --output_dir data/glioma/png_T2 \
+  --img_suffix _T2_bias 
 """
 from __future__ import annotations
 

@@ -17,7 +17,7 @@ from pathlib import Path
 # ----------------------------------------------------------------------
 # paths – change here if your repo layout is different
 # ----------------------------------------------------------------------
-LABELS_CSV = Path("data/glioma/binary/t1/glioma_dataset_all.csv")
+LABELS_CSV = Path("data/glioma/binary/t2/glioma_dataset_all.csv")
 OUT_JSON   = Path("data/glioma/binary/labels.json")
 
 # ----------------------------------------------------------------------

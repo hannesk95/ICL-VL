@@ -1,12 +1,5 @@
 # evaluation.py – flexible two-label evaluator
-
-"""Evaluate classification results saved by main.py.
-
-Highlights vs. original:
-• Understands *nested* score dictionaries produced by the new main.py.
-• Works with any two-label list (class1/class2, Tumor/No Tumor, etc.).
-• Fixes the UTC deprecation warning.
-"""
+# Works on Python 3.8 – 3.12 (no hard dependency on datetime.UTC)
 
 from __future__ import annotations
 
@@ -14,8 +7,13 @@ import os
 import json
 import argparse
 from collections import defaultdict
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from typing import List, Dict, Any
+
+try:                        # Python 3.11+
+    from datetime import UTC
+except ImportError:         # Python ≤ 3.10
+    UTC = timezone.utc
 
 import numpy as np
 from sklearn.metrics import (
@@ -56,7 +54,8 @@ def save_confusion_matrix(cm: np.ndarray, labels: List[str], outfile_png: str, t
     thresh = cm.max() / 2.0
     for i in range(n):
         for j in range(n):
-            ax.text(j, i, f"{cm[i, j]:d}", ha="center", va="center", color="white" if cm[i, j] > thresh else "black", fontsize=8)
+            ax.text(j, i, f"{cm[i, j]:d}", ha="center", va="center",
+                    color="white" if cm[i, j] > thresh else "black", fontsize=8)
     fig.savefig(outfile_png, bbox_inches="tight")
     plt.close(fig)
 
@@ -65,7 +64,9 @@ def save_roc_curve(fpr: np.ndarray, tpr: np.ndarray, auc_value: float, outfile_p
     fig, ax = plt.subplots(figsize=(4, 4), dpi=300, constrained_layout=True)
     ax.plot(fpr, tpr, linewidth=1.5, label=f"AUC = {auc_value:.3f}")
     ax.plot([0, 1], [0, 1], "--", linewidth=1)
-    ax.set(xlim=[0.0, 1.0], ylim=[0.0, 1.05], xlabel="False Positive Rate", ylabel="True Positive Rate", title=f"ROC curve (positive = '{pos_label}')")
+    ax.set(xlim=[0.0, 1.0], ylim=[0.0, 1.05],
+           xlabel="False Positive Rate", ylabel="True Positive Rate",
+           title=f"ROC curve (positive = '{pos_label}')")
     ax.legend(loc="lower right", fontsize=7)
     fig.savefig(outfile_png, bbox_inches="tight")
     plt.close(fig)
@@ -76,7 +77,6 @@ def save_roc_curve(fpr: np.ndarray, tpr: np.ndarray, auc_value: float, outfile_p
 # ----------------------------------------------------------------------
 
 def _snake(label: str) -> str:
-    """Lower-case and replace whitespace with underscores."""
     return "_".join(label.lower().split())
 
 
@@ -93,32 +93,31 @@ def evaluate(results_path: str, labels_path: str) -> None:
         y_true.append(ground_truth.get(fname, "Unknown"))
         y_pred.append(res.get("answer", "Unknown"))
 
-        # collect any scores (nested or legacy flat)
+        # collect any scores
         if isinstance(res.get("score"), dict):
             score_dicts.append(res["score"])
-        else:
-            score_dicts.append({k: res.get(k) for k in ("score_tumor", "score_no_tumor") if k in res})
+        else:  # legacy flat
+            score_dicts.append({k: res.get(k)
+                                for k in ("score_tumor", "score_no_tumor") if k in res})
 
-    # ---------- determine positive label and build y_score ----------
+    # determine positive label, build y_score
     labels_set = sorted({*y_true, *y_pred})
     y_score: List[float | None] = [None] * len(y_true)
     pos_label = None
     if len(labels_set) == 2:
-        # choose lexicographically first label as positive (historic behaviour)
-        pos_label = labels_set[0]
+        pos_label = labels_set[0]        # lexicographic
         pos_key = f"score_{_snake(pos_label)}"
         for i, sdict in enumerate(score_dicts):
             if sdict and pos_key in sdict:
                 y_score[i] = sdict[pos_key]
 
-    # ---------- basic metrics ----------
+    # ---------- metrics ----------
     print("Classification Report:\n")
     print(classification_report(y_true, y_pred, zero_division=0))
 
     acc = accuracy_score(y_true, y_pred)
     print(f"\nOverall Accuracy: {acc * 100:.2f}%")
 
-    # per-class accuracy
     class_correct, class_total = defaultdict(int), defaultdict(int)
     for t, p in zip(y_true, y_pred):
         class_total[t] += 1
@@ -129,11 +128,9 @@ def evaluate(results_path: str, labels_path: str) -> None:
         pct = 100.0 * class_correct[cls] / class_total[cls] if class_total[cls] else 0.0
         print(f"  {cls}: {pct:.2f}% ({class_correct[cls]}/{class_total[cls]})")
 
-    # MCC
     mcc = matthews_corrcoef(y_true, y_pred)
     print(f"\nMatthews Correlation Coefficient (MCC): {mcc:.4f}")
 
-    # AUC & ROC
     auc_value, roc_saved = None, False
     if pos_label and all(s is not None for s in y_score):
         y_true_bin = [1 if t == pos_label else 0 for t in y_true]
@@ -142,7 +139,6 @@ def evaluate(results_path: str, labels_path: str) -> None:
     else:
         print("ROC-AUC: n/a (need binary task and continuous scores)")
 
-    # ---------- confusion matrix & files ----------
     cm = confusion_matrix(y_true, y_pred, labels=labels_set)
     base = os.path.splitext(os.path.basename(results_path))[0]
     out_dir = os.path.dirname(results_path)
@@ -161,7 +157,6 @@ def evaluate(results_path: str, labels_path: str) -> None:
         save_roc_curve(fpr, tpr, auc_value, roc_png, pos_label)
         roc_saved = True
 
-    # ---------- scalar metrics ----------
     with open(metrics_json, "w") as f:
         json.dump(
             {
@@ -174,7 +169,7 @@ def evaluate(results_path: str, labels_path: str) -> None:
             indent=2,
         )
 
-    # ---------- summary ----------
+    # summary
     print("\nResults saved to:")
     print(f"  • {cm_png}")
     print(f"  • {cm_json}")

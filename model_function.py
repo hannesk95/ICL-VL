@@ -1,7 +1,7 @@
 """
 model.py – Gemini helper + prompt builder (flexible binary labels)
            + interleaved positive/negative few-shot pairs
-           (DEBUG: prints prompt size, token count, and generation parameters)
+           (UPDATED: honours generation parameters & keeps demo images high-res)
 """
 
 from __future__ import annotations
@@ -77,7 +77,7 @@ def load_prompt_text() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Prompt builder (unchanged logic + DEBUG instrumentation)
+# Prompt builder (unchanged from your original code)
 # ---------------------------------------------------------------------------
 def build_gemini_prompt(
     few_shot_samples: Dict[str, List[Any]],
@@ -165,22 +165,6 @@ def build_gemini_prompt(
 
         contents.append({"role": "user", "parts": [test_image, "[Test] Please classify this histopathology slide:"]})
 
-    # ------------------------------------------------------------------
-    # DEBUG instrumentation: count messages & tokens (optional)
-    # ------------------------------------------------------------------
-    if os.getenv("DEBUG_PROMPT", "0") == "1":
-        pos_ct = len(few_shot_samples.get(label_list[0], [])) if classification_type == "binary" and label_list else 0
-        neg_ct = len(few_shot_samples.get(label_list[1], [])) if classification_type == "binary" and label_list else 0
-        print(f"[prompt] {len(contents)} total messages "
-              f"(instr+test+2·shots → pos:{pos_ct} neg:{neg_ct})")
-
-        try:
-            model_tmp = genai.GenerativeModel(_MODEL_NAME)
-            toks = model_tmp.count_tokens(contents).total_tokens
-            print(f"[prompt] {toks} tokens (Flash hard limit ≈ 32 k)")
-        except Exception as exc:
-            print(f"[prompt] token count unavailable: {exc}")
-
     return contents
 
 
@@ -212,11 +196,7 @@ def gemini_api_call(
     label_list: List[str] | None = None,
 ) -> Dict[str, Any]:
 
-    # DEBUG: show generation parameters
-    if os.getenv("DEBUG_PROMPT", "0") == "1":
-        cfg_show = {**_GENERATION_CFG} or {"temperature": "model‑default"}
-        print(f"[gen] model={_MODEL_NAME}  params={cfg_show}")
-
+    # NEW: honour model name + generation parameters
     model = genai.GenerativeModel(
         _MODEL_NAME,
         generation_config=_GENERATION_CFG,

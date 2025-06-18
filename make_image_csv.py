@@ -17,6 +17,11 @@ python make_image_csv.py \
     --root  data/glioma/png_T1c           \
     --keyword mipax                   \
     --out  mip_images.csv
+    
+python make_image_csv.py \
+    --root  data/glioma/png_T2           \
+    --keyword same_rgb                \
+    --out  same_rgb_images.csv
 """
 import argparse
 import csv
