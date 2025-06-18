@@ -8,87 +8,121 @@ sampler.py – random OR on-the-fly K-nearest-neighbour few-shot selector
 • _knn_samples           – on-the-fly cosine-KNN (no CSV required)
    · anchor = "random"  → draw from label pool using data.seed
    · anchor = /path/…   → fixed file
+
+This revision builds the inference transform from each model’s
+`default_cfg`, so DINOv2 backbones receive 518×518 crops while
+ResNet/MobileNet etc. keep 224×224.
 """
 
 from __future__ import annotations
 
-import csv, io, os, random
+import csv
+import io
+import os
+import random
 from collections import defaultdict
-from typing  import Dict, List, Tuple
+from typing import Dict, List, Tuple
 
-import torch, torch.nn.functional as F
+import torch
+import torch.nn.functional as F
+import torchvision.models as models
 import torchvision.transforms as T
-import torchvision.models     as models
 from PIL import Image
+from torchvision.transforms.functional import InterpolationMode
+
+# ---------------------------------------------------------------------
+# Optional dependency: TIMM (needed for DINOv2 backbones)
+# ---------------------------------------------------------------------
+try:
+    import timm  # noqa: F401
+except ImportError:
+    timm = None
+    print("[WARN] timm not installed – DINOv2 models unavailable.")
 
 from dataset import CSVDataset
 
-
-# ╭──────────────────────────────────────────────────────────────────╮
-# │ HELPERS                                                          │
-# ╰──────────────────────────────────────────────────────────────────╯
-Part   = Dict[str, bytes]
+# ---------------------------------------------------------------------
+# Type helpers
+# ---------------------------------------------------------------------
+Part = Dict[str, bytes]
 Tensor = torch.Tensor
 
 _LABEL_MAP = {  # only used for your multiclass tasks; keep if needed
-    "ADI":"Adipose","DEB":"Debris","LYM":"Lymphocytes","MUC":"Mucus",
-    "MUS":"Smooth Muscle","NORM":"Normal Colon Mucosa",
-    "STR":"Cancer-Associated Stroma","TUM":"Colorectal Adenocarcinoma Epithelium",
+    "ADI": "Adipose",
+    "DEB": "Debris",
+    "LYM": "Lymphocytes",
+    "MUC": "Mucus",
+    "MUS": "Smooth Muscle",
+    "NORM": "Normal Colon Mucosa",
+    "STR": "Cancer-Associated Stroma",
+    "TUM": "Colorectal Adenocarcinoma Epithelium",
 }
-def _canonical(lbl:str, typ:str)->str:
-    return lbl.strip() if typ=="binary" else _LABEL_MAP.get(lbl.strip(), lbl.strip())
 
 
-def _to_part(img:Image.Image)->Part:
+def _canonical(lbl: str, typ: str) -> str:
+    return lbl.strip() if typ == "binary" else _LABEL_MAP.get(lbl.strip(), lbl.strip())
+
+
+def _to_part(img: Image.Image) -> Part:
+    """Convert PIL → Gemini multipart dict (WEBP)."""
     buf = io.BytesIO()
     img.save(buf, "WEBP", quality=90, method=6)
     buf.seek(0)
-    return {"mime_type":"image/webp", "data":buf.getvalue()}
+    return {"mime_type": "image/webp", "data": buf.getvalue()}
 
 
 # ╭──────────────────────────────────────────────────────────────────╮
 # │ PUBLIC ENTRY: build_few_shot_samples                            │
 # ╰──────────────────────────────────────────────────────────────────╯
-def build_few_shot_samples(config:dict, transform,
-                           classification_type:str,
-                           label_list:List[str]) -> Dict[str, List[Tuple[Part,str]]]:
+def build_few_shot_samples(
+    config: dict,
+    transform,
+    classification_type: str,
+    label_list: List[str],
+) -> Dict[str, List[Tuple[Part, str]]]:
 
-    s_cfg   = config.get("sampling", {})
-    strat   = s_cfg.get("strategy", "random").lower()
+    s_cfg = config.get("sampling", {})
+    strat = s_cfg.get("strategy", "random").lower()
 
     if strat == "random":
         return _random_samples(
-            train_csv          = config["data"]["train_csv"],
-            transform          = transform,
-            classification_type= classification_type,
-            label_list         = label_list,
-            num_shots          = config["data"]["num_shots"],
-            randomize          = config["data"].get("randomize_few_shot", True),
-            seed               = config["data"].get("seed", 42),
+            train_csv=config["data"]["train_csv"],
+            transform=transform,
+            classification_type=classification_type,
+            label_list=label_list,
+            num_shots=config["data"]["num_shots"],
+            randomize=config["data"].get("randomize_few_shot", True),
+            seed=config["data"].get("seed", 42),
         )
 
     if strat == "knn":
         return _knn_samples(
-            classification_type= classification_type,
-            label_list         = label_list,
-            num_shots          = config["data"]["num_shots"],
-            train_csv          = config["data"]["train_csv"],
-            seed               = config["data"].get("seed", 42),
-            num_neighbors      = s_cfg.get("num_neighbors", 2),
-            embedder           = s_cfg.get("embedder", "resnet50"),
-            device             = s_cfg.get("device",   "cpu"),
-            anchors            = s_cfg.get("anchors", {}),
-            knn_csv            = s_cfg.get("knn_csv"),          # may be None
+            classification_type=classification_type,
+            label_list=label_list,
+            num_shots=config["data"]["num_shots"],
+            train_csv=config["data"]["train_csv"],
+            seed=config["data"].get("seed", 42),
+            num_neighbors=s_cfg.get("num_neighbors", 2),
+            embedder=s_cfg.get("embedder", "resnet50"),
+            device=s_cfg.get("device", "cpu"),
+            anchors=s_cfg.get("anchors", {}),
+            knn_csv=s_cfg.get("knn_csv"),  # may be None
         )
 
     raise ValueError(f"Unknown sampling.strategy: {strat}")
 
 
 # ╭──────────────────────────────────────────────────────────────────╮
-# │ BALANCED TEST INDICES (unchanged)                               │
+# │ BALANCED TEST INDICES                                           │
 # ╰──────────────────────────────────────────────────────────────────╯
-def build_balanced_indices(ds:CSVDataset, classification_type:str, label_list:List[str],
-                           total_images:int, randomize=True, seed=42)->List[int]:
+def build_balanced_indices(
+    ds: CSVDataset,
+    classification_type: str,
+    label_list: List[str],
+    total_images: int,
+    randomize=True,
+    seed=42,
+) -> List[int]:
     per = max(1, total_images // len(label_list))
     rem = total_images - per * len(label_list)
 
@@ -104,7 +138,7 @@ def build_balanced_indices(ds:CSVDataset, classification_type:str, label_list:Li
         for v in buckets.values():
             random.shuffle(v)
 
-    chosen=[]
+    chosen = []
     for lbl in label_list:
         chosen += buckets[lbl][:per]
 
@@ -116,10 +150,17 @@ def build_balanced_indices(ds:CSVDataset, classification_type:str, label_list:Li
 
 
 # ╭──────────────────────────────────────────────────────────────────╮
-# │ RANDOM FEW-SHOT                                                │
+# │ RANDOM FEW-SHOT                                                 │
 # ╰──────────────────────────────────────────────────────────────────╯
-def _random_samples(train_csv, transform, classification_type, label_list,
-                    num_shots, randomize, seed):
+def _random_samples(
+    train_csv,
+    transform,
+    classification_type,
+    label_list,
+    num_shots,
+    randomize,
+    seed,
+):
     ds = CSVDataset(train_csv, transform=transform)
     buckets = defaultdict(list)
     for i in range(len(ds)):
@@ -143,47 +184,104 @@ def _random_samples(train_csv, transform, classification_type, label_list,
 
 
 # ╭──────────────────────────────────────────────────────────────────╮
-# │ KNN FEW-SHOT – PRE-COMPUTED OR LIVE                             │
+# │ MODEL & FEATURE EXTRACTION HELPERS                              │
 # ╰──────────────────────────────────────────────────────────────────╯
-_TRANS = T.Compose([
-    T.Resize(256), T.CenterCrop(224), T.ToTensor(),
-    T.Normalize([0.485,0.456,0.406], [0.229,0.224,0.225]),
-])
-_EMB_CACHE:Dict[str,Tensor] = {}
+def _make_transform_from_cfg(cfg: dict) -> T.Compose:
+    """
+    Build a torchvision transform from a model's default_cfg.
+    Falls back to ImageNet defaults when a key is missing.
+    """
+    size = cfg.get("input_size", (3, 224, 224))[1]  # assume square
+    mean = cfg.get("mean", (0.485, 0.456, 0.406))
+    std = cfg.get("std", (0.229, 0.224, 0.225))
+    return T.Compose(
+        [
+            T.Resize(size, interpolation=InterpolationMode.BICUBIC),
+            T.CenterCrop(size),
+            T.ToTensor(),
+            T.Normalize(mean, std),
+        ]
+    )
 
-def _embedder(name:str, device:str):
-    m = getattr(models, name)(weights="IMAGENET1K_V2")
-    if hasattr(m, "fc"):
-        m.fc = torch.nn.Identity()
-    elif hasattr(m, "classifier"):
-        m.classifier = torch.nn.Identity()
-    return m.eval().to(device)
 
-def _feat(path:str, model, device):
+def _embedder(name: str, device: str):
+    """
+    Return a CNN / ViT backbone stripped of its classifier.
+    • torchvision XX                → ResNet/MobileNet/…
+    • vit_*_dinov2.* via timm      → ViT-DINOv2 CLS embedding
+    The transform used at inference time is attached as
+    `model._inference_transform`.
+    """
+    # -------- DINOv2 backbone via timm ---------------------------------
+    if "dinov2" in name:
+        if timm is None:
+            raise ImportError("Install 'timm' to use DINOv2 backbones.")
+        model = timm.create_model(name, pretrained=True, num_classes=0)
+        model.eval().to(device)
+        model._inference_transform = _make_transform_from_cfg(model.default_cfg)
+        return model
+
+    # -------- torchvision backbone ------------------------------------
+    model: torch.nn.Module = getattr(models, name)(weights="IMAGENET1K_V2")
+    if hasattr(model, "fc"):  # ResNet-style
+        model.fc = torch.nn.Identity()
+    elif hasattr(model, "classifier"):  # MobileNet / ViT-torchvision
+        model.classifier = torch.nn.Identity()
+    model.eval().to(device)
+    model._inference_transform = _make_transform_from_cfg({})
+    return model
+
+
+_EMB_CACHE: Dict[str, Tensor] = {}
+
+
+def _feat(path: str, model: torch.nn.Module, device: str):
+    """Return L2-normalised feature vector for an image file."""
     if path in _EMB_CACHE:
         return _EMB_CACHE[path]
     img = Image.open(path).convert("RGB")
-    x   = _TRANS(img).unsqueeze(0).to(device)
+    x = model._inference_transform(img).unsqueeze(0).to(device)
     with torch.no_grad():
         v = model(x).squeeze(0)
     v = F.normalize(v, dim=0).cpu()
     _EMB_CACHE[path] = v
     return v
 
-def _load_table(csv_path)->Dict[str,List[str]]:
-    table, strip = {}, str.maketrans("","",'[]\'"')
-    with open(csv_path,newline="") as f:
-        r=csv.reader(f); next(r,None)
+
+def _load_table(csv_path) -> Dict[str, List[str]]:
+    """Read a (anchor, neighbour1, neighbour2, …) CSV table."""
+    table, strip = {}, str.maketrans("", "", '[]\'"')
+    with open(csv_path, newline="") as f:
+        r = csv.reader(f)
+        next(r, None)
         for row in r:
-            if not row: continue
-            anc   = row[0].translate(strip).split(",")[0].strip()
-            neigh = [c.translate(strip).split(",")[0].strip() for c in row[1:] if c.strip()]
+            if not row:
+                continue
+            anc = row[0].translate(strip).split(",")[0].strip()
+            neigh = [
+                c.translate(strip).split(",")[0].strip()
+                for c in row[1:]
+                if c.strip()
+            ]
             table[os.path.abspath(anc)] = neigh
     return table
 
 
-def _knn_samples(classification_type, label_list, num_shots, train_csv, seed,
-                 num_neighbors, embedder, device, anchors, knn_csv):
+# ╭──────────────────────────────────────────────────────────────────╮
+# │ KNN FEW-SHOT – PRE-COMPUTED OR LIVE                             │
+# ╰──────────────────────────────────────────────────────────────────╯
+def _knn_samples(
+    classification_type,
+    label_list,
+    num_shots,
+    train_csv,
+    seed,
+    num_neighbors,
+    embedder,
+    device,
+    anchors,
+    knn_csv,
+):
 
     if num_neighbors >= num_shots:
         raise ValueError("num_neighbors must be < num_shots")
@@ -191,20 +289,23 @@ def _knn_samples(classification_type, label_list, num_shots, train_csv, seed,
     # A) ---------- pre-computed table branch --------------------------
     if knn_csv:
         table = _load_table(knn_csv)
-        def _lbl(p): return _canonical(os.path.basename(p).split("-")[0], classification_type)
+
+        def _lbl(p):
+            return _canonical(os.path.basename(p).split("-")[0], classification_type)
+
         pools = defaultdict(list)
         for p in table:
             pools[_lbl(p)].append(p)
 
         rand = random.Random(seed)
-        few  = {}
+        few = {}
         for lbl in label_list:
             anchor = anchors.get(lbl, "random")
             if anchor == "random":
                 anchor = rand.choice(pools[lbl])
 
-            neigh  = table[anchor][:num_neighbors]
-            paths  = ([anchor] + neigh)[:num_shots]
+            neigh = table[anchor][:num_neighbors]
+            paths = ([anchor] + neigh)[:num_shots]
             few[lbl] = [(_to_part(Image.open(p).convert("RGB")), p) for p in paths]
         return few
 
@@ -217,22 +318,24 @@ def _knn_samples(classification_type, label_list, num_shots, train_csv, seed,
             pools[lbl].append(p)
 
     model = _embedder(embedder, device)
-    rand  = random.Random(seed)
-    few   = {}
+    rand = random.Random(seed)
+    few = {}
 
     for lbl in label_list:
         if len(pools[lbl]) < num_shots:
-            raise ValueError(f"Need ≥{num_shots} images for '{lbl}', found {len(pools[lbl])}")
+            raise ValueError(
+                f"Need ≥{num_shots} images for '{lbl}', found {len(pools[lbl])}"
+            )
 
         anchor = anchors.get(lbl, "random")
         if anchor == "random":
             anchor = rand.choice(pools[lbl])
 
         feat_anchor = _feat(anchor, model, device)
-        others      = [p for p in pools[lbl] if p != anchor]
-        feats       = torch.stack([_feat(p, model, device) for p in others])
-        sims        = torch.mv(feats, feat_anchor)
-        neigh       = [others[i] for i in sims.topk(num_neighbors).indices.tolist()]
+        others = [p for p in pools[lbl] if p != anchor]
+        feats = torch.stack([_feat(p, model, device) for p in others])
+        sims = torch.mv(feats, feat_anchor)
+        neigh = [others[i] for i in sims.topk(num_neighbors).indices.tolist()]
 
         paths = ([anchor] + neigh)[:num_shots]
         few[lbl] = [(_to_part(Image.open(p).convert("RGB")), p) for p in paths]

@@ -7,7 +7,7 @@ data:
   train_csv: "data/glioma/binary/t2/glioma_dataset.csv"
   test_csv: "data/glioma/binary/t2/glioma_test_dataset.csv"
   save_path: ./results/${project}/${classification_type}/${mode}/${modality}/
-  num_shots: 3
+  num_shots: 10
   batch_size: 1
   randomize_few_shot: false
   seed: 42
@@ -33,11 +33,17 @@ classification:
   labels: ["class1", "class2"]
 
 sampling:
-  strategy: knn          # <- tells the sampler to use KNN
-  knn_csv: null          # null ⇒ build neighbours at run-time
-  num_neighbors: 2       # = num_shots - 1   (example: 3-shot)
-  anchors:
-    class1: "/home/tim/ICL-VL/data/glioma/png_T2/UCSF-PDGM-0439_T2_bias.nii/UCSF-PDGM-0439_T2_bias.nii_z097_same_rgb.png"
-    class2: "/home/tim/ICL-VL/data/glioma/png_T2/UCSF-PDGM-0010_T2_bias.nii/UCSF-PDGM-0010_T2_bias.nii_z079_same_rgb.png"
-  embedder: resnet50
-  device: cuda:0         # "cpu" if no GPU
+  strategy: random
+  embedder: vit_base_patch14_dinov2.lvd142m   # or vit_large_patch14_dinov2.lvd142m
+  device: cuda:0
+  num_neighbors: 9
+
+#sampling:
+#  strategy: knn          # <- tells the sampler to use KNN
+#  knn_csv: null          # null ⇒ build neighbours at run-time
+#  num_neighbors: 2       # = num_shots - 1   (example: 3-shot)
+#  anchors:
+#    class1: random # "/home/tim/ICL-VL/data/glioma/png_T2/UCSF-PDGM-0439_T2_bias.nii/UCSF-PDGM-0439_T2_bias.nii_z097_same_rgb.png"
+#    class2: random # "/home/tim/ICL-VL/data/glioma/png_T2/UCSF-PDGM-0010_T2_bias.nii/UCSF-PDGM-0010_T2_bias.nii_z079_same_rgb.png"
+#  embedder: resnet50
+#  device: cuda:0       # "cpu" if no GPU
