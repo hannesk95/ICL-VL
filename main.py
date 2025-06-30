@@ -1,10 +1,11 @@
-# main.py – flexible binary labels **without legacy tumor/no_tumor keys**
-#           + high-res few-shot transform & model-kwargs support
+# main.py – binary glioma grading (Gemini) with optional query-aware K-NN
+#           Verbose mode now lists the few-shot image paths actually used.
 
 import os
 import json
 import datetime
 import subprocess
+from functools import partial
 from dotenv import load_dotenv
 
 import torchvision.transforms as T
@@ -12,8 +13,10 @@ from torch.utils.data import DataLoader, Subset
 
 from config import load_config
 from dataset import CSVDataset
-from model import configure_gemini, build_gemini_prompt, gemini_api_call
-from sampler import build_balanced_indices, build_few_shot_samples
+from model   import configure_gemini, build_gemini_prompt, gemini_api_call
+from sampler import build_few_shot_samples, build_balanced_indices
+
+from query_knn import build_query_knn_samples   # query-aware provider
 
 
 def main() -> None:
@@ -23,8 +26,10 @@ def main() -> None:
     load_dotenv()
     config = load_config("configs/glioma/binary/t2/three_shot.yaml")
 
-    test_csv   = config["data"]["test_csv"]
-    save_path  = config["data"]["save_path"]
+    verbose = config["user_args"].get("verbose", False)
+
+    test_csv  = config["data"]["test_csv"]
+    save_path = config["data"]["save_path"]
 
     prompt_path         = config["user_args"]["prompt_path"]
     classification_type = config["classification"]["type"]
@@ -40,16 +45,9 @@ def main() -> None:
     # ------------------------------------------------------------------ #
     # Gemini & transforms                                                #
     # ------------------------------------------------------------------ #
-    # Pass the model block so that temperature / top-p / max tokens
-    # actually reach the GenerativeModel constructor.
     configure_gemini(config.get("model", {}))
 
     transform = T.Compose([T.ToTensor()])   # full-resolution test images
-
-    # HIGH-RES DEMO IMAGES – no forced resize any more
-    few_shot_transform = T.Compose([
-        T.ToTensor(),                       # keep original resolution
-    ])
 
     # ------------------------------------------------------------------ #
     # Balanced test subset                                               #
@@ -70,20 +68,35 @@ def main() -> None:
     )
 
     # ------------------------------------------------------------------ #
-    # Few-shot pool (uses high-res transform)                            #
+    # Few-shot provider (query-aware or static)                          #
     # ------------------------------------------------------------------ #
-    few_shot_samples = build_few_shot_samples(
-        config=config,
-        transform=few_shot_transform,
-        classification_type=classification_type,
-        label_list=label_list,
-    )
+    strategy = config["sampling"]["strategy"].lower()
 
-    print("\n[INFO] Few-shot image selection:")
-    for lbl in label_list:
-        print(f"  [{lbl}]")
-        for _, p in few_shot_samples[lbl]:
-            print(f"    – {p}")
+    if strategy == "knn":
+        few_shot_provider = partial(
+            build_query_knn_samples,
+            train_csv=config["data"]["train_csv"],
+            classification_type=classification_type,
+            label_list=label_list,
+            num_shots=config["data"]["num_shots"],
+            embedder_name=config["sampling"]["embedder"],
+            device=config["sampling"]["device"],
+        )
+    else:
+        static_few_shot = build_few_shot_samples(
+            config=config,
+            transform=T.Compose([T.ToTensor()]),
+            classification_type=classification_type,
+            label_list=label_list,
+        )
+        # ---- print once (random / static K-NN) ------------------------
+        if verbose:
+            print("\n[INFO] Few-shot pool (static):")
+            for lbl in label_list:
+                print(f"  [{lbl}]")
+                for _, p in static_few_shot[lbl]:
+                    print(f"    – {p}")
+        few_shot_provider = lambda *_, **__: static_few_shot   # noqa: E731
 
     # ------------------------------------------------------------------ #
     # Inference loop                                                     #
@@ -94,6 +107,16 @@ def main() -> None:
         print(f"\n[IMAGE {i}/{len(test_loader.dataset)}] {img_path}")
 
         pil_img = T.ToPILImage()(img_tensor.squeeze(0))
+        few_shot_samples = few_shot_provider(query_img=pil_img)
+
+        # ---- per-query listing (only for query-aware K-NN) ------------
+        if verbose and strategy == "knn":
+            print("  Few-shot selection:")
+            for lbl in label_list:
+                print(f"    [{lbl}]")
+                for _, p in few_shot_samples[lbl]:
+                    print(f"      – {p}")
+
         contents = build_gemini_prompt(
             few_shot_samples,
             pil_img,
