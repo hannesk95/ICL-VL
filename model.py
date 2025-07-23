@@ -1,13 +1,14 @@
 """
 model.py – unified VLM backend for Gemini + (single-GPU) LLaVA-HF
-last updated 2025-07-23 (c patch 6)
+last updated 2025-07-23 (c patch 8)
 
-Key changes from previous patch:
-• build_llava_prompt: no JSON in demos; only brief NL descriptions. JSON schema given once.
-• Strong anti-copy instruction added.
-• _llava_hf_call: do_sample=False + repetition_penalty to reduce verbatim copying.
-• Still robust to HF apply_chat_template output types.
-• Gemini path untouched.
+What's new in this patch:
+• Robust JSON extraction: regex grabs the last {...} block, basic repairs.
+• Hard guard: for binary tasks, never return "Unknown"; pick a class.
+• Default scores repaired to be in [0,1] and sum≈1 when missing.
+• Prompt (LLaVA) reminds: never output Unknown.
+
+Gemini path unchanged.
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from collections import deque
 from enum import Enum
 from functools import wraps
 from threading import Lock
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 import google.generativeai as genai
 from transformers import AutoProcessor, LlavaForConditionalGeneration, BitsAndBytesConfig
@@ -42,7 +43,7 @@ _GENERATION_CFG: Dict[str, Any] = {}
 _HF_PROC_MODEL = None
 _MODEL_NAME = "gemini-2.0-flash"
 
-# Gemini rate limiter
+# Gemini token bucket
 _MAX_CALLS, _PERIOD = 16, 80.0
 _CALLS: deque[float] = deque()
 _LOCK = Lock()
@@ -85,8 +86,7 @@ def configure_gemini(model_cfg: dict | None = None) -> None:
 
 
 def load_prompt_text() -> str:
-    with open(os.getenv("PROMPT_PATH", "./prompts/few_shot.txt"),
-              encoding="utf-8") as fp:
+    with open(os.getenv("PROMPT_PATH", "./prompts/few_shot.txt"), encoding="utf-8") as fp:
         return fp.read()
 
 
@@ -144,11 +144,11 @@ def _map_label(free_text: str, label_list: List[str] | None):
         tum, no = label_list
         patterns = [
             (r"\bclass\s*1\b", tum),
-            (r"\bhigh\s*grade\b", tum),
-            (r"\bhgg\b", tum),
+            (r"\blow\s*grade\b", tum),
+            (r"\blgg\b", tum),
             (r"\bclass\s*2\b", no),
-            (r"\blow\s*grade\b", no),
-            (r"\blgg\b", no),
+            (r"\bhigh\s*grade\b", no),
+            (r"\bhgg\b", no),
             (r"\bno\s*tumou?r\b", no),
             (r"\bbenign\b", no),
         ]
@@ -158,29 +158,100 @@ def _map_label(free_text: str, label_list: List[str] | None):
     return "Unknown"
 
 
+def _attempt_json_fix(text: str) -> Dict[str, Any] | None:
+    """
+    Try harder to extract JSON:
+    • take the last {...} block
+    • replace single quotes with double if needed
+    • remove trailing commas
+    """
+    m = None
+    # find all JSON-like blocks
+    for match in re.finditer(r"\{[\s\S]*\}", text):
+        m = match  # keep last
+    if not m:
+        return None
+    candidate = m.group(0).strip()
+
+    # Quick repairs
+    cand = candidate
+    # fix single quotes (only on keys) – naive but works often
+    cand = re.sub(r"(?<=\{|,)\s*'([^']+)'\s*:", r'"\1":', cand)
+    cand = re.sub(r":\s*'([^']+)'", lambda m: ':"{}"'.format(m.group(1).replace('"', '\\"')), cand)
+    # remove trailing commas before } or ]
+    cand = re.sub(r",\s*(\}|\])", r"\1", cand)
+
+    try:
+        return json.loads(cand)
+    except Exception:
+        return None
+
+
+def _repair_binary_output(data: Dict[str, Any],
+                          label_list: List[str]) -> Dict[str, Any]:
+    """Ensure answer in {label_list}, scores in [0,1], sum≈1."""
+    pos, neg = label_list
+    pk, nk = f"score_{_snake(pos)}", f"score_{_snake(neg)}"
+
+    # fix scores
+    s_pos = float(data.get(pk, -1))
+    s_neg = float(data.get(nk, -1))
+    if not (0.0 <= s_pos <= 1.0) or not (0.0 <= s_neg <= 1.0):
+        if 0 <= s_pos <= 1 and s_neg == -1:
+            s_neg = 1 - s_pos
+        elif 0 <= s_neg <= 1 and s_pos == -1:
+            s_pos = 1 - s_neg
+        else:
+            # default to 0.5/0.5
+            s_pos = 0.5
+            s_neg = 0.5
+    # normalise
+    tot = s_pos + s_neg
+    if tot > 0:
+        s_pos, s_neg = s_pos / tot, s_neg / tot
+
+    data[pk], data[nk] = round(s_pos, 4), round(s_neg, 4)
+
+    # fix answer
+    ans = data.get("answer", "")
+    if ans not in label_list:
+        data["answer"] = pos if s_pos >= s_neg else neg
+
+    # ensure thoughts exists
+    data.setdefault("thoughts", "")
+    data.setdefault("location", None)
+    return data
+
+
 def _extract_llava_json(resp: str,
                         classification_type: str,
                         label_list: List[str] | None):
+    # strip code fences
     cleaned = re.sub(r"^```(?:json)?|```$", "", resp, flags=re.I).strip()
     cleaned = cleaned.replace(r"\_", "_")
+
+    data = None
     try:
         data = json.loads(cleaned)
     except Exception:
+        data = _attempt_json_fix(cleaned)
+
+    if data is None:
         if os.getenv("DEBUG_LAVA", "0") == "1":
-            print("[LLaVA raw]", cleaned)
+            print("[LLaVA raw no-json]", cleaned)
         data = {
             "thoughts": "Free-form reply; JSON parse failed.",
-            "answer": _map_label(cleaned, label_list),
+            "answer": _map_label(cleaned, label_list) if label_list else "Unknown",
         }
 
+    # Guarantees / defaults
     if classification_type == "binary" and label_list and len(label_list) == 2:
-        pos_key = f"score_{_snake(label_list[0])}"
-        neg_key = f"score_{_snake(label_list[1])}"
-        data.setdefault(pos_key, -1)
-        data.setdefault(neg_key, -1)
-        data.setdefault("location", None)
+        data = _repair_binary_output(data, label_list)
     else:
         data.setdefault("score", -1.0)
+        if "answer" not in data:
+            data["answer"] = "Unknown"
+
     return data
 
 
@@ -188,11 +259,7 @@ def _llava_hf_call(contents,
                    classification_type: str = "binary",
                    label_list: List[str] | None = None):
     """
-    Robust LLaVA call:
-      1) Convert our contents → HF chat dict (no '<image>' literal).
-      2) Get prompt string via apply_chat_template(tokenize=False).
-      3) Tokenize with processor(...).
-      4) Greedy decode w/ repetition_penalty to avoid copy.
+    Robust LLaVA call.
     """
     processor, model = _HF_PROC_MODEL
 
@@ -201,13 +268,13 @@ def _llava_hf_call(contents,
         role = msg["role"].lower()
         role = "assistant" if role.startswith("assistant") or role.startswith("model") else "user"
         parts = []
-        for p in msg["parts"]:
-            if isinstance(p, dict) and "mime_type" in p:
-                img = Image.open(io.BytesIO(p["data"])).convert("RGB")
+        for part in msg["parts"]:
+            if isinstance(part, dict) and "mime_type" in part:
+                img = Image.open(io.BytesIO(part["data"])).convert("RGB")
                 images.append(img)
                 parts.append({"type": "image"})
             else:
-                txt = p["text"] if isinstance(p, dict) else str(p)
+                txt = part["text"] if isinstance(part, dict) else str(part)
                 txt = txt.replace("<image>", "[IMG]")
                 parts.append({"type": "text", "text": txt})
         chat.append({"role": role, "content": parts})
@@ -228,11 +295,11 @@ def _llava_hf_call(contents,
 
     gen_kwargs = dict(
         max_new_tokens=_GENERATION_CFG.get("max_new_tokens", 512),
-        top_p=_GENERATION_CFG.get("top_p", 1.0),
-        do_sample=False,
-        repetition_penalty=1.15,
+        do_sample=True,
+        temperature=0.4,
+        top_p=0.9,
+        repetition_penalty=1.2,
     )
-    # temperature ignored when do_sample=False, so skip it
 
     out = model.generate(**inputs, **gen_kwargs)
     resp = processor.decode(out[0], skip_special_tokens=True).strip()
@@ -283,6 +350,7 @@ def build_gemini_prompt(
     classification_type: str = "binary",
     label_list: List[str] | None = None,
 ):
+    # Unchanged
     instruction = load_prompt_text()
     contents = [{"role": "user", "parts": [{"text": instruction}]}]
 
@@ -298,8 +366,10 @@ def build_gemini_prompt(
             if i < len(pos_items):
                 img_part, _ = pos_items[i]
                 contents += [
-                    {"role": "user", "parts": [img_part,
-                                               {"text": f"[Positive Example {i+1}] Please classify:"}]},
+                    {"role": "user", "parts": [
+                        img_part,
+                        {"text": f"[Positive Example {i+1}] Please classify:"},
+                    ]},
                     {"role": "model", "parts": [{
                         "text": json.dumps({
                             "thoughts": f"Consistent with {pos_lbl.lower()}",
@@ -313,8 +383,10 @@ def build_gemini_prompt(
             if i < len(neg_items):
                 img_part, _ = neg_items[i]
                 contents += [
-                    {"role": "user", "parts": [img_part,
-                                               {"text": f"[Negative Example {i+1}] Please classify:"}]},
+                    {"role": "user", "parts": [
+                        img_part,
+                        {"text": f"[Negative Example {i+1}] Please classify:"},
+                    ]},
                     {"role": "model", "parts": [{
                         "text": json.dumps({
                             "thoughts": f"No evidence of {pos_lbl.lower()}",
@@ -326,15 +398,19 @@ def build_gemini_prompt(
                     }]},
                 ]
 
-        contents.append({"role": "user", "parts": [test_image,
-                                                   {"text": "[Test] Please classify:"}]})
+        contents.append({"role": "user", "parts": [
+            test_image,
+            {"text": "[Test] Please classify:"},
+        ]})
 
     else:
         for lbl, items in few_shot_samples.items():
             for i, (img_part, _) in enumerate(items, 1):
                 contents += [
-                    {"role": "user", "parts": [img_part,
-                                               f"[{lbl} Example {i}] Please classify:"]},
+                    {"role": "user", "parts": [
+                        img_part,
+                        f"[{lbl} Example {i}] Please classify:",
+                    ]},
                     {"role": "model", "parts": [{
                         "text": json.dumps({
                             "thoughts": f"Representative of {lbl}",
@@ -343,8 +419,10 @@ def build_gemini_prompt(
                         })
                     }]},
                 ]
-        contents.append({"role": "user", "parts": [test_image,
-                                                   "[Test] Please classify:"]})
+        contents.append({"role": "user", "parts": [
+            test_image,
+            "[Test] Please classify:",
+        ]})
     return contents
 
 
@@ -357,62 +435,33 @@ def _read_text(path: str, default: str = "") -> str:
 
 
 def build_llava_prompt(
-    few_shot_samples,
+    few_shot_samples,  # unused now (zero-shot)
     test_image,
     classification_type: str = "binary",
     label_list: List[str] | None = None,
     prompt_text_path: str | None = None,
 ):
     """
-    LLaVA-friendly: no JSON examples; concise schema; anti-copy instructions.
+    ZERO-SHOT prompt for LLaVA with explicit instructions:
+    • Never output Unknown
+    • JSON must be valid
+    • Dual-branch reasoning
     """
     if prompt_text_path is None:
         prompt_text_path = os.getenv("PROMPT_PATH", "./prompts/few_shot_llava.txt")
-    base_prompt = _read_text(prompt_text_path).strip().replace("<image>", "[IMG]")
+    base = _read_text(prompt_text_path).strip().replace("<image>", "[IMG]")
 
-    # Add anti-copy note
-    anti_copy = (
-        "IMPORTANT: Do NOT reuse wording or numbers from any example. "
-        "Your JSON must reflect THIS image only."
+    extra = (
+        "Never answer 'Unknown'. Choose the most likely of the two classes.\n"
+        "In the JSON:\n"
+        " - scores must be in [0,1] and sum to ~1.\n"
+        " - Do not add extra keys.\n"
+        "Thoughts must follow the 4-step structure provided."
     )
-    base_prompt = f"{base_prompt}\n\n{anti_copy}"
+    sys_prompt = f"{base}\n\n{extra}"
 
     contents: List[Dict[str, Any]] = [
-        {"role": "system", "parts": [{"text": base_prompt}]}
+        {"role": "system", "parts": [{"text": sys_prompt}]},
+        {"role": "user",   "parts": [test_image, {"text": "Classify this image now."}]}
     ]
-
-    if classification_type == "binary":
-        if not label_list or len(label_list) != 2:
-            raise ValueError("binary classification expects two labels")
-        pos_lbl, neg_lbl = label_list
-
-        # Give NL-only demos (no JSON) – keep it super short
-        shots = []
-        max_len = max(len(few_shot_samples.get(pos_lbl, [])),
-                      len(few_shot_samples.get(neg_lbl, [])))
-        for i in range(max_len):
-            if i < len(few_shot_samples.get(pos_lbl, [])):
-                shots.append((few_shot_samples[pos_lbl][i][0],
-                              "Homogeneous bright lesion, sharp borders, minimal edema → suggest class1."))
-            if i < len(few_shot_samples.get(neg_lbl, [])):
-                shots.append((few_shot_samples[neg_lbl][i][0],
-                              "Heterogeneous signal, necrotic center, marked edema → suggest class2."))
-            if len(shots) >= 2:
-                break
-
-        for img_part, nl_hint in shots:
-            contents.append({"role": "user", "parts": [img_part, {"text": "Example image. Briefly describe key T2 features."}]})
-            contents.append({"role": "assistant", "parts": [{"text": nl_hint}]})
-
-    else:
-        # Multi-class: same idea – NL hints
-        for lbl, items in few_shot_samples.items():
-            if not items:
-                continue
-            img_part, _ = items[0]
-            contents.append({"role": "user", "parts": [img_part, {"text": "Example image. Briefly describe key features."}]})
-            contents.append({"role": "assistant", "parts": [{"text": f"Representative of {lbl} based on visual features."}]})
-
-    # Final image to classify
-    contents.append({"role": "user", "parts": [test_image, {"text": "Now classify this image. Return ONLY valid JSON as specified."}]})
     return contents

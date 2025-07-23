@@ -8,11 +8,9 @@ class1 → homogeneous bright signal, well-defined margins, little edema, no nec
 class2 → heterogeneous signal, poorly defined/infiltrative margins, marked edema, central necrosis.
 
 Return ONLY a JSON object with keys:
-"thoughts": string (3 numbered steps: observations → match to clues → conclusion)
+"thoughts": string (structured reasoning as instructed)
 "answer": "class1" or "class2"
 "score_class1": float in [0,1]
 "score_class2": float in [0,1]
 "location": string or null
 No markdown, no code fences, no extra keys.
-
-Few-shot hints will follow, but DO NOT COPY their wording or numbers.

@@ -7,11 +7,11 @@ data:
   train_csv: "data/glioma/binary/t2/glioma_dataset.csv"
   test_csv: "data/glioma/binary/t2/glioma_test_dataset.csv"
   save_path: ./results/${project}/${classification_type}/${mode}/${modality}/
-  num_shots: 1
+  num_shots: 5
   batch_size: 1
   randomize_few_shot: false
   seed: 2
-  num_test_images: 10
+  num_test_images: 24
   randomize_test_images: true
   test_seed: 40
   labels_path: "data/glioma/binary/t2/labels.json"
