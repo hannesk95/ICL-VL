@@ -7,7 +7,7 @@ data:
   train_csv: "data/glioma/binary/t2/glioma_dataset.csv"
   test_csv: "data/glioma/binary/t2/glioma_test_dataset.csv"
   save_path: ./results/${project}/${classification_type}/${mode}/${modality}/
-  num_shots: 5
+  num_shots: 3
   batch_size: 1
   randomize_few_shot: false
   seed: 2
@@ -25,7 +25,7 @@ model:
     max_output_tokens: 1024
 
 user_args:
-  prompt_path: "./few_shot_llava.txt"
+  prompt_path: "./few_shot_llava.txt" # "./few_shot_llava.txt", "./prompts/glioma/binary/t2/few_shot.txt"
   verbose: true
   debug: false
 

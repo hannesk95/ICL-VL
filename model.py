@@ -21,7 +21,7 @@ from threading import Lock
 from typing import Any, Dict, List, Tuple
 
 import google.generativeai as genai
-from transformers import AutoProcessor, LlavaForConditionalGeneration, BitsAndBytesConfig
+from transformers import AutoProcessor, LlavaForConditionalGeneration
 import torch
 import PIL.Image as Image
 
@@ -121,12 +121,14 @@ def _setup_llava_hf(model_id: str):
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA GPU required for LLaVA backend")
 
-    proc = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
-    qcfg = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16)
+    # Fast processor to avoid the warning
+    proc = AutoProcessor.from_pretrained(model_id, trust_remote_code=True, use_fast=True)
+
+    # Load the model WITHOUT bitsandbytes/triton
     model = LlavaForConditionalGeneration.from_pretrained(
         model_id,
-        device_map={"": 0},
-        quantization_config=qcfg,
+        torch_dtype=torch.float16,     # use torch.bfloat16 if your GPU supports BF16
+        device_map={"": 0},            # or "auto"
         trust_remote_code=True,
     )
     model.eval()
