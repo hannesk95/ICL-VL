@@ -19,8 +19,9 @@ from torch.utils.data import DataLoader, Subset
 from config import load_config
 from dataset import CSVDataset
 from model import (
-    configure_vlm,          # NEW: sets up Gemini or LLaVA depending on YAML
-    build_gemini_prompt,    # unchanged prompt builder (works for both)
+    configure_vlm,          # sets up Gemini or LLaVA depending on YAML
+    build_gemini_prompt,    # original Gemini-friendly builder
+    build_llava_prompt,     # NEW: LLaVA-friendly builder
     vlm_api_call,           # unified inference call
 )
 from sampler import (
@@ -61,6 +62,8 @@ def main() -> None:
     # 2. Configure the chosen VLM backend (Gemini or LLaVA)         #
     # -------------------------------------------------------------- #
     configure_vlm(config.get("model", {}))
+    use_llava = config.get("model", {}).get("backend", "").lower() == "llava_hf"
+    prompt_builder = build_llava_prompt if use_llava else build_gemini_prompt
 
     transform = T.Compose([T.ToTensor()])   # full-resolution images
 
@@ -130,7 +133,7 @@ def main() -> None:
                 for _, p in few_shot_samples[lbl]:
                     print(f"      – {p}")
 
-        contents = build_gemini_prompt(
+        contents = prompt_builder(
             few_shot_samples,
             pil_img,
             classification_type,
@@ -145,7 +148,7 @@ def main() -> None:
             "answer":     preds.get("answer", "Unknown"),
             "location":   preds.get("location"),
         }
-        if classification_type == "binary":
+        if classification_type == "binary" and label_list and len(label_list) == 2:
             entry["score"] = {
                 f"score_{lbl.lower().replace(' ', '_')}":
                 preds.get(f"score_{lbl.lower().replace(' ', '_')}", -1)

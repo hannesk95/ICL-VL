@@ -17,8 +17,8 @@ data:
   labels_path: "data/glioma/binary/t2/labels.json"
 
 model:
-  backend: gemini #gemini #llava_hf
-  model_name: gemini-2.0-flash #gemini-2.0-flash #llava-hf/llava-1.5-7b-hf
+  backend: llava_hf #gemini #llava_hf
+  model_name: llava-hf/llava-1.5-7b-hf #gemini-2.0-flash #llava-hf/llava-1.5-7b-hf
   model_kwargs:
     temperature: 0.0
     top_p: 1.00

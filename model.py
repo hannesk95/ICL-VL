@@ -1,25 +1,17 @@
 """
 model.py – unified VLM backend for Gemini + (single-GPU) LLaVA-HF
-last updated 2025-07-01 (b patch 3)
+last updated 2025-07-23 (c patch 6)
 
-Key additions versus your original:
-• Robust JSON extraction for LLaVA
-• Regex-based free-form–answer → canonical-label mapping
-• trust_remote_code=True when loading LLaVA
-• DEBUG_LAVA=1 env-var prints raw model output for debugging
-Gemini behaviour is unchanged.
-
-Public API expected by main.py:
-    configure_vlm(model_cfg: dict|None)
-    vlm_api_call(contents, classification_type="binary", label_list=None)
-    build_gemini_prompt(...)
+Key changes from previous patch:
+• build_llava_prompt: no JSON in demos; only brief NL descriptions. JSON schema given once.
+• Strong anti-copy instruction added.
+• _llava_hf_call: do_sample=False + repetition_penalty to reduce verbatim copying.
+• Still robust to HF apply_chat_template output types.
+• Gemini path untouched.
 """
 
 from __future__ import annotations
 
-# ──────────────────────────────────────────────────────────────────────
-# standard lib
-# ──────────────────────────────────────────────────────────────────────
 import io, os, re, json, time
 from collections import deque
 from enum import Enum
@@ -27,20 +19,16 @@ from functools import wraps
 from threading import Lock
 from typing import Any, Dict, List
 
-# ──────────────────────────────────────────────────────────────────────
-# third-party
-# ──────────────────────────────────────────────────────────────────────
 import google.generativeai as genai
 from transformers import AutoProcessor, LlavaForConditionalGeneration, BitsAndBytesConfig
 import torch
 import PIL.Image as Image
 
 
-# ╭──────────────────────────────────────────────────────────────────╮
-# │ Shared helpers & globals                                        │
-# ╰──────────────────────────────────────────────────────────────────╯
+# ──────────────────────────────────────────────────────────────────────
+# Helpers & globals
+# ──────────────────────────────────────────────────────────────────────
 def _snake(text: str) -> str:
-    """lower-snake helper – “No Tumor” → “no_tumor”."""
     return "_".join(text.lower().split())
 
 
@@ -51,13 +39,10 @@ class VLMBackend(str, Enum):
 
 _BACKEND: VLMBackend | None = None
 _GENERATION_CFG: Dict[str, Any] = {}
-_HF_PROC_MODEL = None             # (processor, model)
-_MODEL_NAME = "gemini-2.0-flash"  # default Gemini
+_HF_PROC_MODEL = None
+_MODEL_NAME = "gemini-2.0-flash"
 
-
-# ╭──────────────────────────────────────────────────────────────────╮
-# │ Gemini helpers  (+ simple token-bucket rate limiter)            │
-# ╰──────────────────────────────────────────────────────────────────╯
+# Gemini rate limiter
 _MAX_CALLS, _PERIOD = 16, 80.0
 _CALLS: deque[float] = deque()
 _LOCK = Lock()
@@ -75,7 +60,8 @@ def _acquire_token() -> None:
                 if RL_VERBOSE:
                     print(f"[rate-limit] token ok → {_MAX_CALLS-len(_CALLS)} left")
                 return
-            time.sleep(_PERIOD - (now - _CALLS[0]) + 0.05)
+            wait = _PERIOD - (now - _CALLS[0]) + 0.05
+        time.sleep(wait)
 
 
 def _rate_limited(fn):
@@ -83,12 +69,10 @@ def _rate_limited(fn):
     def wrapper(*a, **kw):
         _acquire_token()
         return fn(*a, **kw)
-
     return wrapper
 
 
 def configure_gemini(model_cfg: dict | None = None) -> None:
-    """Initialise Gemini API."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("set GEMINI_API_KEY in your environment")
@@ -101,7 +85,6 @@ def configure_gemini(model_cfg: dict | None = None) -> None:
 
 
 def load_prompt_text() -> str:
-    """Reads the prompt template specified via PROMPT_PATH env."""
     with open(os.getenv("PROMPT_PATH", "./prompts/few_shot.txt"),
               encoding="utf-8") as fp:
         return fp.read()
@@ -115,7 +98,6 @@ def gemini_api_call(contents,
                                   generation_config=_GENERATION_CFG)
     raw = model.generate_content(contents).text.strip()
     raw = re.sub(r"^```(?:json)?|```$", "", raw, flags=re.I).strip()
-
     try:
         pred = json.loads(raw)
     except Exception:
@@ -132,20 +114,18 @@ def gemini_api_call(contents,
     return pred
 
 
-# ╭──────────────────────────────────────────────────────────────────╮
-# │ LLaVA HF helpers                                                │
-# ╰──────────────────────────────────────────────────────────────────╯
+# ──────────────────────────────────────────────────────────────────────
+# LLaVA helpers
+# ──────────────────────────────────────────────────────────────────────
 def _setup_llava_hf(model_id: str):
-    """Load checkpoint in 4-bit on **cuda:0**."""
     if not torch.cuda.is_available():
         raise RuntimeError("CUDA GPU required for LLaVA backend")
 
     proc = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
-    qcfg = BitsAndBytesConfig(load_in_4bit=True,
-                              bnb_4bit_compute_dtype=torch.float16)
+    qcfg = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16)
     model = LlavaForConditionalGeneration.from_pretrained(
         model_id,
-        device_map={"": 0},                      # pin every sub-module
+        device_map={"": 0},
         quantization_config=qcfg,
         trust_remote_code=True,
     )
@@ -153,17 +133,13 @@ def _setup_llava_hf(model_id: str):
     return proc, model
 
 
-# ── regex-based synonym mapper ─────────────────────────────────────
 def _map_label(free_text: str, label_list: List[str] | None):
     if not label_list:
         return free_text
     text = re.sub(r"[^a-z0-9]+", " ", free_text.lower()).strip()
-
-    # exact match
     for lbl in label_list:
         if text == lbl.lower():
             return lbl
-
     if len(label_list) == 2:
         tum, no = label_list
         patterns = [
@@ -186,7 +162,6 @@ def _extract_llava_json(resp: str,
                         classification_type: str,
                         label_list: List[str] | None):
     cleaned = re.sub(r"^```(?:json)?|```$", "", resp, flags=re.I).strip()
-    # 2) **NEW** – un-escape Markdown underscores (and nothing else)
     cleaned = cleaned.replace(r"\_", "_")
     try:
         data = json.loads(cleaned)
@@ -195,7 +170,7 @@ def _extract_llava_json(resp: str,
             print("[LLaVA raw]", cleaned)
         data = {
             "thoughts": "Free-form reply; JSON parse failed.",
-            "answer":   _map_label(cleaned, label_list),
+            "answer": _map_label(cleaned, label_list),
         }
 
     if classification_type == "binary" and label_list and len(label_list) == 2:
@@ -212,57 +187,65 @@ def _extract_llava_json(resp: str,
 def _llava_hf_call(contents,
                    classification_type: str = "binary",
                    label_list: List[str] | None = None):
-    """Run LLaVA 1.5-HF on a single GPU and parse JSON robustly."""
+    """
+    Robust LLaVA call:
+      1) Convert our contents → HF chat dict (no '<image>' literal).
+      2) Get prompt string via apply_chat_template(tokenize=False).
+      3) Tokenize with processor(...).
+      4) Greedy decode w/ repetition_penalty to avoid copy.
+    """
     processor, model = _HF_PROC_MODEL
 
-    prompt_lines, images = [], []
+    chat, images = [], []
     for msg in contents:
-        role = msg["role"].upper().replace("MODEL", "ASSISTANT")
+        role = msg["role"].lower()
+        role = "assistant" if role.startswith("assistant") or role.startswith("model") else "user"
         parts = []
-        for part in msg["parts"]:
-            if isinstance(part, dict) and "mime_type" in part:
-                images.append(Image.open(io.BytesIO(part["data"])))
-                parts.append("<image>")
-            elif isinstance(part, Image.Image):
-                images.append(part)
-                parts.append("<image>")
+        for p in msg["parts"]:
+            if isinstance(p, dict) and "mime_type" in p:
+                img = Image.open(io.BytesIO(p["data"])).convert("RGB")
+                images.append(img)
+                parts.append({"type": "image"})
             else:
-                txt = part["text"] if isinstance(part, dict) else str(part)
-                parts.append(txt.strip())
-        joined = " ".join(parts).strip()
-        prompt_lines.append(joined if role == "SYSTEM"
-                            else f"{role}: {joined}")
+                txt = p["text"] if isinstance(p, dict) else str(p)
+                txt = txt.replace("<image>", "[IMG]")
+                parts.append({"type": "text", "text": txt})
+        chat.append({"role": role, "content": parts})
 
-    prompt_lines.append(
-        "USER: Respond ONLY with valid JSON as per the template – no markdown.")
-    prompt_lines.append("ASSISTANT:")
+    prompt_text = processor.apply_chat_template(
+        chat,
+        add_generation_prompt=True,
+        tokenize=False
+    )
 
-    prompt_text = "\n".join(prompt_lines)
-    inputs = processor(text=prompt_text,
-                       images=images or None,
-                       return_tensors="pt")
-    inputs = {k: v.to("cuda:0") if torch.is_tensor(v) else v
-              for k, v in inputs.items()}
+    inputs = processor(
+        text=prompt_text,
+        images=images or None,
+        return_tensors="pt",
+        padding=True,
+    )
+    inputs = {k: v.to("cuda:0") if torch.is_tensor(v) else v for k, v in inputs.items()}
 
-    out = model.generate(**inputs,
-                         max_new_tokens=_GENERATION_CFG.get("max_new_tokens",
-                                                             512),
-                         top_p=_GENERATION_CFG.get("top_p", 0.9),
-                         temperature=_GENERATION_CFG.get("temperature", 0.2))
-    resp = processor.decode(out[0], skip_special_tokens=True)
+    gen_kwargs = dict(
+        max_new_tokens=_GENERATION_CFG.get("max_new_tokens", 512),
+        top_p=_GENERATION_CFG.get("top_p", 1.0),
+        do_sample=False,
+        repetition_penalty=1.15,
+    )
+    # temperature ignored when do_sample=False, so skip it
 
+    out = model.generate(**inputs, **gen_kwargs)
+    resp = processor.decode(out[0], skip_special_tokens=True).strip()
     if os.getenv("DEBUG_LAVA", "0") == "1":
         print("── RAW LLaVA ──\n", resp, "\n──────────────")
-
-    resp = re.split(r"ASSISTANT:", resp, flags=re.I)[-1].strip()
+    resp = resp.split("ASSISTANT:")[-1].strip()
     return _extract_llava_json(resp, classification_type, label_list)
 
 
-# ╭──────────────────────────────────────────────────────────────────╮
-# │ Public configure + unified inference API                        │
-# ╰──────────────────────────────────────────────────────────────────╯
+# ──────────────────────────────────────────────────────────────────────
+# Public API
+# ──────────────────────────────────────────────────────────────────────
 def configure_vlm(model_cfg: dict | None = None):
-    """Choose backend (Gemini or LLaVA) and load weights."""
     global _BACKEND, _HF_PROC_MODEL, _GENERATION_CFG, _MODEL_NAME
 
     model_cfg = model_cfg or {}
@@ -273,8 +256,7 @@ def configure_vlm(model_cfg: dict | None = None):
         configure_gemini(model_cfg)
         model_name = _MODEL_NAME
     elif _BACKEND is VLMBackend.LLAVA_HF:
-        model_name = model_cfg.get("model_name",
-                                   "llava-hf/llava-1.5-7b-hf")
+        model_name = model_cfg.get("model_name", "llava-hf/llava-1.5-7b-hf")
         _HF_PROC_MODEL = _setup_llava_hf(model_name)
     else:
         raise ValueError(f"Unsupported backend: {_BACKEND}")
@@ -285,7 +267,6 @@ def configure_vlm(model_cfg: dict | None = None):
 def vlm_api_call(contents,
                  classification_type: str = "binary",
                  label_list: List[str] | None = None):
-    """Back-end agnostic inference dispatch."""
     if _BACKEND is VLMBackend.GEMINI:
         return gemini_api_call(contents, classification_type, label_list)
     if _BACKEND is VLMBackend.LLAVA_HF:
@@ -293,9 +274,9 @@ def vlm_api_call(contents,
     raise RuntimeError("VLM backend not configured")
 
 
-# ╭──────────────────────────────────────────────────────────────────╮
-# │ Few-shot prompt builder – unchanged logic                       │
-# ╰──────────────────────────────────────────────────────────────────╯
+# ──────────────────────────────────────────────────────────────────────
+# Prompt builders
+# ──────────────────────────────────────────────────────────────────────
 def build_gemini_prompt(
     few_shot_samples,
     test_image,
@@ -317,10 +298,8 @@ def build_gemini_prompt(
             if i < len(pos_items):
                 img_part, _ = pos_items[i]
                 contents += [
-                    {"role": "user", "parts": [
-                        img_part,
-                        {"text": f"[Positive Example {i+1}] Please classify:"},
-                    ]},
+                    {"role": "user", "parts": [img_part,
+                                               {"text": f"[Positive Example {i+1}] Please classify:"}]},
                     {"role": "model", "parts": [{
                         "text": json.dumps({
                             "thoughts": f"Consistent with {pos_lbl.lower()}",
@@ -334,10 +313,8 @@ def build_gemini_prompt(
             if i < len(neg_items):
                 img_part, _ = neg_items[i]
                 contents += [
-                    {"role": "user", "parts": [
-                        img_part,
-                        {"text": f"[Negative Example {i+1}] Please classify:"},
-                    ]},
+                    {"role": "user", "parts": [img_part,
+                                               {"text": f"[Negative Example {i+1}] Please classify:"}]},
                     {"role": "model", "parts": [{
                         "text": json.dumps({
                             "thoughts": f"No evidence of {pos_lbl.lower()}",
@@ -349,19 +326,15 @@ def build_gemini_prompt(
                     }]},
                 ]
 
-        contents.append({"role": "user", "parts": [
-            test_image,
-            {"text": "[Test] Please classify:"},
-        ]})
+        contents.append({"role": "user", "parts": [test_image,
+                                                   {"text": "[Test] Please classify:"}]})
 
-    else:  # multi-class
+    else:
         for lbl, items in few_shot_samples.items():
             for i, (img_part, _) in enumerate(items, 1):
                 contents += [
-                    {"role": "user", "parts": [
-                        img_part,
-                        f"[{lbl} Example {i}] Please classify:",
-                    ]},
+                    {"role": "user", "parts": [img_part,
+                                               f"[{lbl} Example {i}] Please classify:"]},
                     {"role": "model", "parts": [{
                         "text": json.dumps({
                             "thoughts": f"Representative of {lbl}",
@@ -370,9 +343,76 @@ def build_gemini_prompt(
                         })
                     }]},
                 ]
-        contents.append({"role": "user", "parts": [
-            test_image,
-            "[Test] Please classify:",
-        ]})
+        contents.append({"role": "user", "parts": [test_image,
+                                                   "[Test] Please classify:"]})
+    return contents
 
+
+def _read_text(path: str, default: str = "") -> str:
+    try:
+        with open(path, encoding="utf-8") as f:
+            return f.read()
+    except Exception:
+        return default
+
+
+def build_llava_prompt(
+    few_shot_samples,
+    test_image,
+    classification_type: str = "binary",
+    label_list: List[str] | None = None,
+    prompt_text_path: str | None = None,
+):
+    """
+    LLaVA-friendly: no JSON examples; concise schema; anti-copy instructions.
+    """
+    if prompt_text_path is None:
+        prompt_text_path = os.getenv("PROMPT_PATH", "./prompts/few_shot_llava.txt")
+    base_prompt = _read_text(prompt_text_path).strip().replace("<image>", "[IMG]")
+
+    # Add anti-copy note
+    anti_copy = (
+        "IMPORTANT: Do NOT reuse wording or numbers from any example. "
+        "Your JSON must reflect THIS image only."
+    )
+    base_prompt = f"{base_prompt}\n\n{anti_copy}"
+
+    contents: List[Dict[str, Any]] = [
+        {"role": "system", "parts": [{"text": base_prompt}]}
+    ]
+
+    if classification_type == "binary":
+        if not label_list or len(label_list) != 2:
+            raise ValueError("binary classification expects two labels")
+        pos_lbl, neg_lbl = label_list
+
+        # Give NL-only demos (no JSON) – keep it super short
+        shots = []
+        max_len = max(len(few_shot_samples.get(pos_lbl, [])),
+                      len(few_shot_samples.get(neg_lbl, [])))
+        for i in range(max_len):
+            if i < len(few_shot_samples.get(pos_lbl, [])):
+                shots.append((few_shot_samples[pos_lbl][i][0],
+                              "Homogeneous bright lesion, sharp borders, minimal edema → suggest class1."))
+            if i < len(few_shot_samples.get(neg_lbl, [])):
+                shots.append((few_shot_samples[neg_lbl][i][0],
+                              "Heterogeneous signal, necrotic center, marked edema → suggest class2."))
+            if len(shots) >= 2:
+                break
+
+        for img_part, nl_hint in shots:
+            contents.append({"role": "user", "parts": [img_part, {"text": "Example image. Briefly describe key T2 features."}]})
+            contents.append({"role": "assistant", "parts": [{"text": nl_hint}]})
+
+    else:
+        # Multi-class: same idea – NL hints
+        for lbl, items in few_shot_samples.items():
+            if not items:
+                continue
+            img_part, _ = items[0]
+            contents.append({"role": "user", "parts": [img_part, {"text": "Example image. Briefly describe key features."}]})
+            contents.append({"role": "assistant", "parts": [{"text": f"Representative of {lbl} based on visual features."}]})
+
+    # Final image to classify
+    contents.append({"role": "user", "parts": [test_image, {"text": "Now classify this image. Return ONLY valid JSON as specified."}]})
     return contents
