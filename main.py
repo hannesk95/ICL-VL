@@ -1,28 +1,43 @@
-# main.py – binary glioma grading (Gemini) with optional query-aware K-NN
-#           Verbose mode now lists the few-shot image paths actually used.
+# main.py – unified Gemini / LLaVA pipeline for binary glioma grading
+# ---------------------------------------------------------------------
+# This revision adds a backend switch (Gemini or Hugging-Face LLaVA/MedLLaVA)
+# controlled from your YAML file.  No other scripts need to change.
+# ---------------------------------------------------------------------
+
+from __future__ import annotations
 
 import os
 import json
-import datetime
+import datetime as dt
 import subprocess
 from functools import partial
-from dotenv import load_dotenv
 
+from dotenv import load_dotenv
 import torchvision.transforms as T
 from torch.utils.data import DataLoader, Subset
 
 from config import load_config
 from dataset import CSVDataset
-from model   import configure_gemini, build_gemini_prompt, gemini_api_call
-from sampler import build_few_shot_samples, build_balanced_indices
-
+from model import (
+    configure_vlm,          # NEW: sets up Gemini or LLaVA depending on YAML
+    build_gemini_prompt,    # unchanged prompt builder (works for both)
+    vlm_api_call,           # unified inference call
+)
+from sampler import (
+    build_few_shot_samples,
+    build_balanced_indices,
+)
 from query_knn import build_query_knn_samples   # query-aware provider
 
 
+# ╭──────────────────────────────────────────────────────────────────╮
+# │ MAIN ENTRY                                                      │
+# ╰──────────────────────────────────────────────────────────────────╯
+
 def main() -> None:
-    # ------------------------------------------------------------------ #
-    # Load YAML config & env                                             #
-    # ------------------------------------------------------------------ #
+    # -------------------------------------------------------------- #
+    # 1. Load YAML config & env vars                                #
+    # -------------------------------------------------------------- #
     load_dotenv()
     config = load_config("configs/glioma/binary/t2/three_shot.yaml")
 
@@ -42,16 +57,16 @@ def main() -> None:
     print(f"[INFO] Label list:                   {label_list}")
     print(f"[INFO] Few-shot sampling strategy:   {config['sampling']['strategy']}")
 
-    # ------------------------------------------------------------------ #
-    # Gemini & transforms                                                #
-    # ------------------------------------------------------------------ #
-    configure_gemini(config.get("model", {}))
+    # -------------------------------------------------------------- #
+    # 2. Configure the chosen VLM backend (Gemini or LLaVA)         #
+    # -------------------------------------------------------------- #
+    configure_vlm(config.get("model", {}))
 
-    transform = T.Compose([T.ToTensor()])   # full-resolution test images
+    transform = T.Compose([T.ToTensor()])   # full-resolution images
 
-    # ------------------------------------------------------------------ #
-    # Balanced test subset                                               #
-    # ------------------------------------------------------------------ #
+    # -------------------------------------------------------------- #
+    # 3. Balanced test subset                                       #
+    # -------------------------------------------------------------- #
     full_test_ds = CSVDataset(csv_path=test_csv, transform=transform)
     balanced_indices = build_balanced_indices(
         full_test_ds,
@@ -67,9 +82,9 @@ def main() -> None:
         shuffle=False,
     )
 
-    # ------------------------------------------------------------------ #
-    # Few-shot provider (query-aware or static)                          #
-    # ------------------------------------------------------------------ #
+    # -------------------------------------------------------------- #
+    # 4. Few-shot provider (static, random, or query-aware K-NN)    #
+    # -------------------------------------------------------------- #
     strategy = config["sampling"]["strategy"].lower()
 
     if strategy == "knn":
@@ -89,7 +104,6 @@ def main() -> None:
             classification_type=classification_type,
             label_list=label_list,
         )
-        # ---- print once (random / static K-NN) ------------------------
         if verbose:
             print("\n[INFO] Few-shot pool (static):")
             for lbl in label_list:
@@ -98,9 +112,9 @@ def main() -> None:
                     print(f"    – {p}")
         few_shot_provider = lambda *_, **__: static_few_shot   # noqa: E731
 
-    # ------------------------------------------------------------------ #
-    # Inference loop                                                     #
-    # ------------------------------------------------------------------ #
+    # -------------------------------------------------------------- #
+    # 5. Inference loop                                             #
+    # -------------------------------------------------------------- #
     results = []
     for i, (img_tensor, img_paths, _) in enumerate(test_loader, start=1):
         img_path = img_paths[0]
@@ -109,7 +123,6 @@ def main() -> None:
         pil_img = T.ToPILImage()(img_tensor.squeeze(0))
         few_shot_samples = few_shot_provider(query_img=pil_img)
 
-        # ---- per-query listing (only for query-aware K-NN) ------------
         if verbose and strategy == "knn":
             print("  Few-shot selection:")
             for lbl in label_list:
@@ -123,7 +136,8 @@ def main() -> None:
             classification_type,
             label_list=label_list,
         )
-        preds = gemini_api_call(contents, classification_type, label_list=label_list)
+
+        preds = vlm_api_call(contents, classification_type, label_list=label_list)
 
         entry = {
             "image_path": img_path,
@@ -142,14 +156,14 @@ def main() -> None:
 
         results.append(entry)
 
-    # ------------------------------------------------------------------ #
-    # Save + optional evaluation                                         #
-    # ------------------------------------------------------------------ #
+    # -------------------------------------------------------------- #
+    # 6. Save results + optional evaluation                         #
+    # -------------------------------------------------------------- #
     os.makedirs(save_path, exist_ok=True)
-    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    ts = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
     out_json = os.path.join(save_path, f"results_{ts}.json")
 
-    with open(out_json, "w") as fp:
+    with open(out_json, "w", encoding="utf-8") as fp:
         json.dump({"results": results}, fp, indent=2)
 
     print(f"[INFO] Results saved to {out_json}")
