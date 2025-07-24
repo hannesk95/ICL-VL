@@ -11,21 +11,24 @@ data:
   batch_size: 1
   randomize_few_shot: false
   seed: 2
-  num_test_images: 24
+  num_test_images: 4
   randomize_test_images: true
   test_seed: 40
   labels_path: "data/glioma/binary/t2/labels.json"
 
 model:
-  backend: llava_hf #gemini #llava_hf
-  model_name: llava-hf/llava-1.5-7b-hf #gemini-2.0-flash #llava-hf/llava-1.5-7b-hf
+  backend:  llava_hf # med_llava       #gemini #llava_hf
+  model_name: llava-hf/llava-1.5-7b-hf #Eren-Senoglu/llava-med-v1.5-mistral-7b-hf #gemini-2.0-flash #llava-hf/llava-1.5-7b-hf
   model_kwargs:
-    temperature: 0.0
-    top_p: 1.00
+    #max_new_tokens: 768
+    #temperature: 0.01
+    #top_p: 0.99
+    temperature: 0.01
+    top_p: 0.99
     max_output_tokens: 1024
 
 user_args:
-  prompt_path: "./few_shot_llava.txt" # "./few_shot_llava.txt", "./prompts/glioma/binary/t2/few_shot.txt"
+  prompt_path: "./few_shot_llava.txt" #"./few_shot_med.txt" # "./few_shot_llava.txt", "./prompts/glioma/binary/t2/few_shot.txt"
   verbose: true
   debug: false
 

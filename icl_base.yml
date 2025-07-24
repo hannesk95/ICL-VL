@@ -1,0 +1,8 @@
+channels:
+  - https://repo.anaconda.com/pkgs/main
+  - https://repo.anaconda.com/pkgs/r
+dependencies:
+  - python
+  - ipykernel
+  - sentencepiece
+prefix: /home/tim/miniconda3/envs/icl
