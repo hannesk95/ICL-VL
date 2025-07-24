@@ -1,7 +1,8 @@
-# main.py – unified Gemini / LLaVA pipeline for binary glioma grading
+# main.py – unified Gemini / LLaVA-HF / Med-LLaVA pipeline for binary glioma grading
 # ---------------------------------------------------------------------
-# This revision adds a backend switch (Gemini or Hugging-Face LLaVA/MedLLaVA)
-# controlled from your YAML file.  No other scripts need to change.
+# 2025-07-24: med_llava support
+#   • Recognises backend "med_llava" with zero impact on the existing
+#     Gemini or LLaVA-HF logic.
 # ---------------------------------------------------------------------
 
 from __future__ import annotations
@@ -19,25 +20,20 @@ from torch.utils.data import DataLoader, Subset
 from config import load_config
 from dataset import CSVDataset
 from model import (
-    configure_vlm,          # sets up Gemini or LLaVA depending on YAML
-    build_gemini_prompt,    # original Gemini-friendly builder
-    build_llava_prompt,     # NEW: LLaVA-friendly builder
-    vlm_api_call,           # unified inference call
+    configure_vlm,
+    build_gemini_prompt,
+    build_llava_prompt,
+    vlm_api_call,
 )
 from sampler import (
     build_few_shot_samples,
     build_balanced_indices,
 )
-from query_knn import build_query_knn_samples   # query-aware provider
+from query_knn import build_query_knn_samples
 
-
-# ╭──────────────────────────────────────────────────────────────────╮
-# │ MAIN ENTRY                                                      │
-# ╰──────────────────────────────────────────────────────────────────╯
 
 def main() -> None:
-    # -------------------------------------------------------------- #
-    # 1. Load YAML config & env vars                                #
+    # 1. Load YAML config & env vars
     # -------------------------------------------------------------- #
     load_dotenv()
     config = load_config("configs/glioma/binary/t2/three_shot.yaml")
@@ -58,17 +54,16 @@ def main() -> None:
     print(f"[INFO] Label list:                   {label_list}")
     print(f"[INFO] Few-shot sampling strategy:   {config['sampling']['strategy']}")
 
-    # -------------------------------------------------------------- #
-    # 2. Configure the chosen VLM backend (Gemini or LLaVA)         #
+    # 2. Configure the chosen VLM backend
     # -------------------------------------------------------------- #
     configure_vlm(config.get("model", {}))
-    use_llava = config.get("model", {}).get("backend", "").lower() == "llava_hf"
+    backend_name = config.get("model", {}).get("backend", "").lower()
+    use_llava = backend_name in ("llava_hf", "med_llava")   # ← changed
     prompt_builder = build_llava_prompt if use_llava else build_gemini_prompt
 
     transform = T.Compose([T.ToTensor()])   # full-resolution images
 
-    # -------------------------------------------------------------- #
-    # 3. Balanced test subset                                       #
+    # 3. Balanced test subset
     # -------------------------------------------------------------- #
     full_test_ds = CSVDataset(csv_path=test_csv, transform=transform)
     balanced_indices = build_balanced_indices(
@@ -85,8 +80,7 @@ def main() -> None:
         shuffle=False,
     )
 
-    # -------------------------------------------------------------- #
-    # 4. Few-shot provider (static, random, or query-aware K-NN)    #
+    # 4. Few-shot provider (static, random, or query-aware K-NN)
     # -------------------------------------------------------------- #
     strategy = config["sampling"]["strategy"].lower()
 
@@ -115,8 +109,7 @@ def main() -> None:
                     print(f"    – {p}")
         few_shot_provider = lambda *_, **__: static_few_shot   # noqa: E731
 
-    # -------------------------------------------------------------- #
-    # 5. Inference loop                                             #
+    # 5. Inference loop
     # -------------------------------------------------------------- #
     results = []
     for i, (img_tensor, img_paths, _) in enumerate(test_loader, start=1):
@@ -159,8 +152,7 @@ def main() -> None:
 
         results.append(entry)
 
-    # -------------------------------------------------------------- #
-    # 6. Save results + optional evaluation                         #
+    # 6. Save results + optional evaluation
     # -------------------------------------------------------------- #
     os.makedirs(save_path, exist_ok=True)
     ts = dt.datetime.now().strftime("%Y%m%d_%H%M%S")
