@@ -1,12 +1,6 @@
 """
 model.py – unified VLM backend for Gemini, LLaVA-HF and Med-LLaVA
 last updated 2025-07-24  (e patch 10)
-
-Patch 10
-────────
-• Med-LLaVA now feeds the chat template the **string-based** format that
-  its Jinja template expects, eliminating the “str + list” TypeError.
-• Behaviour for Gemini and LLaVA-HF is unchanged.
 """
 
 from __future__ import annotations
@@ -34,7 +28,7 @@ def _snake(text: str) -> str:
 class VLMBackend(str, Enum):
     GEMINI    = "gemini"
     LLAVA_HF  = "llava_hf"
-    MED_LLAVA = "med_llava"      # NEW
+    MED_LLAVA = "med_llava"      
 
 
 _BACKEND: VLMBackend | None = None
@@ -252,7 +246,7 @@ def _llava_hf_call(contents,
 
         if orig_role.startswith(("assistant", "model")):
             role = "assistant"
-        elif orig_role.startswith("system") and str_mode:  # keep system for Med-LLaVA
+        elif orig_role.startswith("system") and str_mode: 
             role = "system"
         else:
             role = "user"
@@ -355,7 +349,7 @@ def vlm_api_call(contents,
 
 
 # ──────────────────────────────────────────────────────────────────────
-# Prompt builders (unchanged)
+# Prompt builders
 # ──────────────────────────────────────────────────────────────────────
 def build_gemini_prompt(
     few_shot_samples,
@@ -454,7 +448,6 @@ def build_llava_prompt(
     label_list: List[str] | None = None,
     prompt_text_path: str | None = None,
 ):
-    # … UNCHANGED – zero-shot template usable for both LLaVA-HF & Med-LLaVA …
     if prompt_text_path is None:
         prompt_text_path = os.getenv("PROMPT_PATH", "./prompts/few_shot_llava.txt")
     base = _read_text(prompt_text_path).strip()

@@ -7,7 +7,7 @@ data:
   train_csv: "data/glioma/binary/t2/glioma_dataset.csv"
   test_csv: "data/glioma/binary/t2/glioma_test_dataset.csv"
   save_path: ./results/${project}/${classification_type}/${mode}/${modality}/
-  num_shots: 3
+  num_shots: 1
   batch_size: 1
   randomize_few_shot: false
   seed: 2
@@ -17,8 +17,8 @@ data:
   labels_path: "data/glioma/binary/t2/labels.json"
 
 model:
-  backend:  llava_hf # med_llava       #gemini #llava_hf
-  model_name: llava-hf/llava-1.5-7b-hf #Eren-Senoglu/llava-med-v1.5-mistral-7b-hf #gemini-2.0-flash #llava-hf/llava-1.5-7b-hf
+  backend:  gemini # med_llava       #gemini #llava_hf
+  model_name: gemini-2.0-flash #Eren-Senoglu/llava-med-v1.5-mistral-7b-hf #gemini-2.0-flash #llava-hf/llava-1.5-7b-hf
   model_kwargs:
     #max_new_tokens: 768
     #temperature: 0.01
@@ -28,7 +28,7 @@ model:
     max_output_tokens: 1024
 
 user_args:
-  prompt_path: "./few_shot_llava.txt" #"./few_shot_med.txt" # "./few_shot_llava.txt", "./prompts/glioma/binary/t2/few_shot.txt"
+  prompt_path: "./prompts/glioma/binary/t2/few_shot.txt" #"./few_shot_med.txt" # "./few_shot_llava.txt", "./prompts/glioma/binary/t2/few_shot.txt"
   verbose: true
   debug: false
 
