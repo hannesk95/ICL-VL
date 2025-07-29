@@ -17,8 +17,8 @@ data:
   labels_path: "data/glioma/binary/t2/labels.json"
 
 model:
-  backend:  gemini # med_llava       #gemini #llava_hf
-  model_name: gemini-2.0-flash #Eren-Senoglu/llava-med-v1.5-mistral-7b-hf #gemini-2.0-flash #llava-hf/llava-1.5-7b-hf
+  backend:  med_llava # med_llava       #gemini #llava_hf
+  model_name: Eren-Senoglu/llava-med-v1.5-mistral-7b-hf #Eren-Senoglu/llava-med-v1.5-mistral-7b-hf #gemini-2.0-flash #llava-hf/llava-1.5-7b-hf
   model_kwargs:
     #max_new_tokens: 768
     #temperature: 0.01
@@ -28,7 +28,7 @@ model:
     max_output_tokens: 1024
 
 user_args:
-  prompt_path: "./prompts/glioma/binary/t2/few_shot.txt" #"./few_shot_med.txt" # "./few_shot_llava.txt", "./prompts/glioma/binary/t2/few_shot.txt"
+  prompt_path: "./few_shot_med.txt" #"./few_shot_med.txt" # "./few_shot_llava.txt", "./prompts/glioma/binary/t2/few_shot.txt"
   verbose: true
   debug: false
 

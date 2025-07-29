@@ -1,6 +1,6 @@
 """
 model.py – unified VLM backend for Gemini, LLaVA-HF and Med-LLaVA
-last updated 2025-07-29  (e patch 15: fully separated LLaVA-HF vs Med-LLaVA)
+last updated 2025-07-24  (e patch 10)
 """
 
 from __future__ import annotations
@@ -28,7 +28,7 @@ def _snake(text: str) -> str:
 class VLMBackend(str, Enum):
     GEMINI    = "gemini"
     LLAVA_HF  = "llava_hf"
-    MED_LLAVA = "med_llava"
+    MED_LLAVA = "med_llava"      
 
 
 _BACKEND: VLMBackend | None = None
@@ -108,7 +108,7 @@ def gemini_api_call(contents,
 
 
 # ──────────────────────────────────────────────────────────────────────
-# LLaVA helpers (shared utilities, not code paths)
+# LLaVA helpers  (shared by LLaVA-HF and Med-LLaVA)
 # ──────────────────────────────────────────────────────────────────────
 def _setup_llava_hf(model_id: str):
     if not torch.cuda.is_available():
@@ -229,35 +229,52 @@ def _extract_llava_json(resp: str,
     return data
 
 
-# ──────────────────────────────────────────────────────────────────────
-# LLaVA-HF (ORIGINAL, untouched behavior)
-# ──────────────────────────────────────────────────────────────────────
-def _llava_hf_call_hf(contents,
-                      classification_type: str = "binary",
-                      label_list: List[str] | None = None):
+def _llava_hf_call(contents,
+                   classification_type: str = "binary",
+                   label_list: List[str] | None = None):
     """
-    ORIGINAL LLaVA-HF path (as in your old file). Uses multimodal parts,
-    decodes the full sequence, and keeps the tail after the last 'ASSISTANT:'.
+    Shared call for LLaVA-HF and Med-LLaVA.
+    The latter needs a *string-based* chat format (<image> tokens),
+    whereas LLaVA-HF prefers multimodal lists.
     """
     processor, model = _HF_PROC_MODEL
+    str_mode = _BACKEND is VLMBackend.MED_LLAVA
 
     chat, images = [], []
     for msg in contents:
-        role = msg["role"].lower()
-        parts = []
-        for part in msg["parts"]:
-            if isinstance(part, dict) and "mime_type" in part:
-                img = Image.open(io.BytesIO(part["data"])).convert("RGB")
-                images.append(img)
-                parts.append({"type": "image"})
-            else:
-                txt = part["text"] if isinstance(part, dict) else str(part)
-                txt = txt.replace("<image>", "[IMG]")  # neutralize if present in text
-                parts.append({"type": "text", "text": txt})
-        chat.append({"role": role, "content": parts})
+        orig_role = msg["role"].lower()
 
-    if os.getenv("DEBUG_LAVA", "0") == "1":
-        print(f"[LLaVA-HF] chat messages: {len(chat)} | images attached: {len(images)}")
+        if orig_role.startswith(("assistant", "model")):
+            role = "assistant"
+        elif orig_role.startswith("system") and str_mode: 
+            role = "system"
+        else:
+            role = "user"
+
+        if str_mode:
+            # ── Med-LLaVA expects one string per message ──
+            segs: List[str] = []
+            for part in msg["parts"]:
+                if isinstance(part, dict) and "mime_type" in part:
+                    img = Image.open(io.BytesIO(part["data"])).convert("RGB")
+                    images.append(img)
+                    segs.append("<image>")
+                else:
+                    segs.append(part["text"] if isinstance(part, dict) else str(part))
+            chat.append({"role": role, "content": "\n".join(segs)})
+        else:
+            # ── LLaVA-HF multimodal list format ──
+            parts = []
+            for part in msg["parts"]:
+                if isinstance(part, dict) and "mime_type" in part:
+                    img = Image.open(io.BytesIO(part["data"])).convert("RGB")
+                    images.append(img)
+                    parts.append({"type": "image"})
+                else:
+                    txt = part["text"] if isinstance(part, dict) else str(part)
+                    txt = txt.replace("<image>", "[IMG]")
+                    parts.append({"type": "text", "text": txt})
+            chat.append({"role": role, "content": parts})
 
     prompt_text = processor.apply_chat_template(
         chat,
@@ -284,184 +301,13 @@ def _llava_hf_call_hf(contents,
     out = model.generate(**inputs, **gen_kwargs)
     resp = processor.decode(out[0], skip_special_tokens=True).strip()
     if os.getenv("DEBUG_LAVA", "0") == "1":
-        print("── RAW LLaVA-HF ──\n", resp, "\n──────────────────")
+        print("── RAW LLaVA ──\n", resp, "\n──────────────")
     resp = resp.split("ASSISTANT:")[-1].strip()
     return _extract_llava_json(resp, classification_type, label_list)
 
 
-def _build_llava_prompt_hf(
-    few_shot_samples,
-    test_image,
-    classification_type: str = "binary",
-    label_list: List[str] | None = None,
-    prompt_text_path: str | None = None,
-):
-    """
-    ORIGINAL prompt builder for LLaVA-HF (exactly like your old version).
-    Do NOT wrap the image; pass it through as-is.
-    """
-    if prompt_text_path is None:
-        prompt_text_path = os.getenv("PROMPT_PATH", "./prompts/few_shot_llava.txt")
-    base = _read_text(prompt_text_path).strip()
-
-    extra = (
-        "Never answer 'Unknown'. Choose the most likely of the two classes.\n"
-        "In the JSON:\n"
-        " - scores must be in [0,1] and sum to ~1.\n"
-        " - Do not add extra keys.\n"
-        "Thoughts must follow the 4-step structure provided."
-    )
-    sys_prompt = f"{base}\n\n{extra}"
-
-    return [
-        {"role": "system", "parts": [{"text": sys_prompt}]},
-        {"role": "user",   "parts": [test_image, {"text": "Classify this image now."}]}
-    ]
-
-
 # ──────────────────────────────────────────────────────────────────────
-# Med-LLaVA (NEW, isolated path)
-# ──────────────────────────────────────────────────────────────────────
-def _ensure_patch_size_for_med(proc):
-    """
-    Some community LLaVA checkpoints don't expose `patch_size` where Transformers expects it.
-    For Med-LLaVA we ensure a sane value so ProcessingLlava can compute image token counts.
-    """
-    ps = getattr(proc, "patch_size", None)
-    if ps is None:
-        ip = getattr(proc, "image_processor", None)
-        ps = getattr(ip, "patch_size", None) if ip is not None else None
-    if ps is None:
-        ps = 14  # ViT-L/14 is the common visual backbone for LLaVA-1.5 & Med-LLaVA
-        if os.getenv("DEBUG_LAVA", "0") == "1":
-            print("[Med-LLaVA] 'patch_size' missing; defaulting to 14.")
-    proc.patch_size = ps
-    if os.getenv("DEBUG_LAVA", "0") == "1":
-        print(f"[Med-LLaVA] Using patch_size={proc.patch_size}")
-    return proc
-
-
-def _med_llava_call(contents,
-                    classification_type: str = "binary",
-                    label_list: List[str] | None = None):
-    """
-    Med-LLaVA path:
-      • string chat messages with "<image>" placeholders
-      • attach images separately
-      • decode only newly generated tokens (avoid picking JSON from prompt)
-    """
-    processor, model = _HF_PROC_MODEL
-
-    chat, images = [], []
-    for msg in contents:
-        role = "assistant" if msg["role"].lower().startswith(("assistant", "model")) \
-               else ("system" if msg["role"].lower().startswith("system") else "user")
-
-        segs: List[str] = []
-        for part in msg["parts"]:
-            if isinstance(part, dict) and "mime_type" in part:
-                img = Image.open(io.BytesIO(part["data"])).convert("RGB")
-                images.append(img)
-                segs.append("<image>")
-            else:
-                segs.append(part["text"] if isinstance(part, dict) else str(part))
-        chat.append({"role": role, "content": "\n".join(segs)})
-
-    if os.getenv("DEBUG_LAVA", "0") == "1":
-        print(f"[Med-LLaVA] chat messages: {len(chat)} | images attached: {len(images)}")
-
-    prompt_text = processor.apply_chat_template(
-        chat,
-        add_generation_prompt=True,
-        tokenize=False,
-    )
-
-    inputs = processor(
-        text=prompt_text,
-        images=images or None,
-        return_tensors="pt",
-        padding=True,
-    )
-    inputs = {k: v.to("cuda:0") if torch.is_tensor(v) else v for k, v in inputs.items()}
-
-    # Slice off prompt tokens before decoding (avoid worked-example JSON)
-    prompt_len = int(inputs["input_ids"].shape[1])
-
-    gen_kwargs = dict(
-        max_new_tokens=_GENERATION_CFG.get("max_new_tokens", 512),
-        do_sample=True,
-        temperature=0.4,
-        top_p=0.9,
-        repetition_penalty=1.2,
-    )
-
-    out = model.generate(**inputs, **gen_kwargs)
-
-    seq = out["sequences"][0] if isinstance(out, dict) and "sequences" in out else out[0]
-    total_len = int(seq.shape[0])
-    gen_only = seq[prompt_len:] if total_len > prompt_len else seq
-
-    tok = getattr(processor, "tokenizer", None)
-    resp = (tok.decode(gen_only, skip_special_tokens=True).strip()
-            if tok is not None else processor.decode(gen_only, skip_special_tokens=True).strip())
-
-    if os.getenv("DEBUG_LAVA", "0") == "1":
-        print(f"[Med-LLaVA] prompt_len={prompt_len} | total_len={total_len} | gen_len={int(gen_only.shape[0])}")
-        print("── RAW Med-LLaVA (gen only) ──\n", resp, "\n──────────────────────")
-
-    return _extract_llava_json(resp, classification_type, label_list)
-
-
-def _build_medllava_prompt(
-    few_shot_samples,
-    test_image,
-    classification_type: str = "binary",
-    label_list: List[str] | None = None,
-    prompt_text_path: str | None = None,
-):
-    """
-    Med-LLaVA prompt builder:
-      • sanitize any "<image>" placeholders in the prompt text (worked examples)
-      • attach exactly one test image (converted to bytes dict)
-    """
-    if prompt_text_path is None:
-        prompt_text_path = os.getenv("PROMPT_PATH", "./few_shot_med.txt")
-    base = _read_text(prompt_text_path).strip()
-
-    # Remove stray "<image>" placeholders (we only attach the test image)
-    base = re.sub(r"<\s*image\s*>", "[image omitted]", base, flags=re.I)
-
-    extra = (
-        "Never answer 'Unknown'. Choose the most likely of the two classes.\n"
-        "In the JSON:\n"
-        " - scores must be in [0,1] and sum to ~1.\n"
-        " - Do not add extra keys.\n"
-        "Thoughts must follow the 4-step structure provided."
-    )
-    sys_prompt = f"{base}\n\n{extra}"
-
-    # Convert PIL → dict so Med-LLaVA path can attach bytes robustly
-    buf = io.BytesIO()
-    if isinstance(test_image, Image.Image):
-        test_image.save(buf, format="PNG")
-        img_part = {"mime_type": "image/png", "data": buf.getvalue()}
-    elif isinstance(test_image, dict) and "mime_type" in test_image and "data" in test_image:
-        img_part = test_image
-    else:
-        # Fallback: wrap raw bytes if provided
-        if isinstance(test_image, (bytes, bytearray)):
-            img_part = {"mime_type": "image/png", "data": bytes(test_image)}
-        else:
-            raise TypeError(f"Unsupported image type for Med-LLaVA prompt: {type(test_image)}")
-
-    return [
-        {"role": "system", "parts": [{"text": sys_prompt}]},
-        {"role": "user",   "parts": [img_part, {"text": "Classify this image now."}]}
-    ]
-
-
-# ──────────────────────────────────────────────────────────────────────
-# Public API (dispatchers)
+# Public API
 # ──────────────────────────────────────────────────────────────────────
 def configure_vlm(model_cfg: dict | None = None):
     global _BACKEND, _HF_PROC_MODEL, _GENERATION_CFG, _MODEL_NAME
@@ -483,9 +329,7 @@ def configure_vlm(model_cfg: dict | None = None):
             "model_name",
             "Eren-Senoglu/llava-med-v1.5-mistral-7b-hf"
         )
-        proc, model = _setup_llava_hf(model_name)
-        proc = _ensure_patch_size_for_med(proc)  # only for med_llava
-        _HF_PROC_MODEL = (proc, model)
+        _HF_PROC_MODEL = _setup_llava_hf(model_name)
 
     else:
         raise ValueError(f"Unsupported backend: {_BACKEND}")
@@ -498,15 +342,14 @@ def vlm_api_call(contents,
                  label_list: List[str] | None = None):
     if _BACKEND is VLMBackend.GEMINI:
         return gemini_api_call(contents, classification_type, label_list)
-    if _BACKEND is VLMBackend.LLAVA_HF:
-        return _llava_hf_call_hf(contents, classification_type, label_list)
-    if _BACKEND is VLMBackend.MED_LLAVA:
-        return _med_llava_call(contents, classification_type, label_list)
+    if _BACKEND in (VLMBackend.LLAVA_HF, VLMBackend.MED_LLAVA):
+        return _llava_hf_call(contents, classification_type, label_list)
     raise RuntimeError("VLM backend not configured")
 
 
+
 # ──────────────────────────────────────────────────────────────────────
-# Prompt builders (dispatch – name kept stable for main.py)
+# Prompt builders
 # ──────────────────────────────────────────────────────────────────────
 def build_gemini_prompt(
     few_shot_samples,
@@ -605,15 +448,20 @@ def build_llava_prompt(
     label_list: List[str] | None = None,
     prompt_text_path: str | None = None,
 ):
-    """
-    Public builder name kept stable for main.py.
-    DISPATCH ONLY: each backend has its own builder to avoid cross-coupling.
-    """
-    if _BACKEND is VLMBackend.MED_LLAVA:
-        return _build_medllava_prompt(
-            few_shot_samples, test_image, classification_type, label_list, prompt_text_path
-        )
-    else:
-        return _build_llava_prompt_hf(
-            few_shot_samples, test_image, classification_type, label_list, prompt_text_path
-        )
+    if prompt_text_path is None:
+        prompt_text_path = os.getenv("PROMPT_PATH", "./prompts/few_shot_llava.txt")
+    base = _read_text(prompt_text_path).strip()
+
+    extra = (
+        "Never answer 'Unknown'. Choose the most likely of the two classes.\n"
+        "In the JSON:\n"
+        " - scores must be in [0,1] and sum to ~1.\n"
+        " - Do not add extra keys.\n"
+        "Thoughts must follow the 4-step structure provided."
+    )
+    sys_prompt = f"{base}\n\n{extra}"
+
+    return [
+        {"role": "system", "parts": [{"text": sys_prompt}]},
+        {"role": "user",   "parts": [test_image, {"text": "Classify this image now."}]}
+    ]
