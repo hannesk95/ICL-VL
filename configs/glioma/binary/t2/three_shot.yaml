@@ -1,12 +1,11 @@
 project: glioma
-mode: three_shot
 classification_type: binary
 modality: t2
 
 data:
   train_csv: "data/glioma/binary/t2/glioma_dataset.csv"
   test_csv: "data/glioma/binary/t2/glioma_test_dataset.csv"
-  save_path: ./results/${project}/${classification_type}/${mode}/${modality}/
+  save_path: ./results/${project}/${modality}/${model}/${classification_type}/${sampling_strategy}/${mode}/
   num_shots: 1
   batch_size: 1
   randomize_few_shot: false
@@ -16,28 +15,55 @@ data:
   test_seed: 40
   labels_path: "data/glioma/binary/t2/labels.json"
 
+# model:
+#   backend:  llava_hf
+#   model_name: llava-hf/llava-1.5-7b-hf
+#   model_kwargs:
+#     temperature: 0.01
+#     top_p: 0.99
+#     max_output_tokens: 1024
+
+# user_args:
+#   prompt_path: "./prompts/glioma/binary/t2/few_shot_llava.txt"
+#   verbose: true
+#   debug: false
+
 model:
-  backend:  med_llava # med_llava       #gemini #llava_hf
-  model_name: Eren-Senoglu/llava-med-v1.5-mistral-7b-hf #Eren-Senoglu/llava-med-v1.5-mistral-7b-hf #gemini-2.0-flash #llava-hf/llava-1.5-7b-hf
+  backend:  gemini
+  model_name: gemini-2.0-flash
   model_kwargs:
-    #max_new_tokens: 768
-    #temperature: 0.01
-    #top_p: 0.99
     temperature: 0.01
     top_p: 0.99
     max_output_tokens: 1024
 
 user_args:
-  prompt_path: "./few_shot_med.txt" #"./few_shot_med.txt" # "./few_shot_llava.txt", "./prompts/glioma/binary/t2/few_shot.txt"
+  prompt_path: "./prompts/glioma/binary/t2/few_shot_gemini.txt"
   verbose: true
   debug: false
+
+
+# model:
+#   backend: med_llava
+#   model_name: Eren-Senoglu/llava-med-v1.5-mistral-7b-hf
+#   model_kwargs:
+#     do_sample: true
+#     temperature: 0.3
+#     top_p: 0.95
+#     max_new_tokens: 384
+#     min_new_tokens: 64
+#     repetition_penalty: 1.05
+
+# user_args:
+#   prompt_path: "./prompts/glioma/binary/t2/few_shot_med.txt"
+#   verbose: true
+#   debug: false
 
 classification:
   type: ${classification_type}
   labels: ["class1", "class2"]
 
 sampling:
-  strategy: knn
+  strategy: random
   embedder: vit_base_patch14_dinov2.lvd142m   # or vit_large_patch14_dinov2.lvd142m
   device: cuda:0
   num_neighbors: 23

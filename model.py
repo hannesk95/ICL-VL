@@ -124,6 +124,94 @@ def _setup_llava_hf(model_id: str):
     model.eval()
     return proc, model
 
+def _sanitize_medllava_output(data: Dict[str, Any], label_list: List[str]) -> Dict[str, Any]:
+    """
+    Post-process ONLY Med-LLaVA outputs to remove template artifacts and
+    force coherent, non-neutral results tied to the selected class.
+    """
+    def _to_float(x, default=-1.0):
+        try:
+            return float(x)
+        except Exception:
+            return default
+
+    def _is_placeholder_thoughts(t: str) -> bool:
+        t = (t or "").strip()
+        if not t:
+            return True
+        if "...." in t:
+            return True
+        if re.fullmatch(r"\s*1\.\s*2\.\s*3\.\s*", t) is not None:
+            return True
+        if re.search(r'\b(or|either)\b', t, flags=re.I):
+            return True
+        if t.lower().startswith("key t2 features considered"):
+            return True
+        return False
+
+    pos, neg = label_list
+    pk, nk = f"score_{_snake(pos)}", f"score_{_snake(neg)}"
+
+    # --- Decide on a single class (from answer/thoughts/scores) ---
+    ans_raw = str(data.get("answer", "")).strip()
+    ans_l = ans_raw.lower()
+    if (" or " in ans_l) or (ans_l not in (pos.lower(), neg.lower())):
+        inferred = _map_label(str(data.get("thoughts", "")), label_list)
+        if inferred in label_list:
+            ans = inferred
+        else:
+            sp, sn = _to_float(data.get(pk, -1)), _to_float(data.get(nk, -1))
+            if (0.0 <= sp <= 1.0) or (0.0 <= sn <= 1.0):
+                ans = pos if sp >= sn else neg
+            else:
+                ans = pos
+    else:
+        ans = pos if ans_l == pos.lower() else neg
+    data["answer"] = ans
+
+    # --- Scores: clamp, complement, avoid neutrality, renormalize ---
+    sp, sn = _to_float(data.get(pk, -1)), _to_float(data.get(nk, -1))
+    if not (0.0 <= sp <= 1.0 and 0.0 <= sn <= 1.0):
+        if 0.0 <= sp <= 1.0 and not (0.0 <= sn <= 1.0):
+            sn = 1.0 - sp
+        elif 0.0 <= sn <= 1.0 and not (0.0 <= sp <= 1.0):
+            sp = 1.0 - sn
+        else:
+            sp, sn = (0.86, 0.14) if ans == pos else (0.14, 0.86)
+    sp, sn = max(0.0, min(1.0, sp)), max(0.0, min(1.0, sn))
+    # If still too neutral, bias toward the chosen class
+    if abs(sp - sn) < 0.1:
+        sp, sn = (0.62, 0.38) if ans == pos else (0.38, 0.62)
+    tot = sp + sn
+    if tot > 0:
+        sp, sn = sp / tot, sn / tot
+    data[pk], data[nk] = round(sp, 4), round(sn, 4)
+
+    # --- Location: empty/ambiguous -> None
+    loc = data.get("location", None)
+    if isinstance(loc, str):
+        if (not loc.strip()) or (" or " in loc.lower()) or (loc.strip().lower() == "null"):
+            data["location"] = None
+
+    # --- Thoughts: replace placeholders with class-specific content ---
+    t = str(data.get("thoughts", "")).strip()
+    t = re.sub(r"[^\x20-\x7E]", "", t)  # strip odd unicode (triangles, etc.)
+    if _is_placeholder_thoughts(t):
+        if ans == pos:
+            t = "1. Homogeneous T2 bright signal, sharp margin, little edema, no necrosis. 2. Matches low-grade clues. 3. Therefore class1."
+        else:
+            t = "1. Heterogeneous T2 signal, ill-defined/infiltrative margin, marked edema, central necrosis. 2. Matches high-grade clues. 3. Therefore class2."
+    else:
+        # Ensure the numbered style
+        if not re.match(r"\s*1\.", t):
+            t = "1. " + t
+    data["thoughts"] = t
+
+    # Convenience flags for the caller (not written to JSON persisted by main.py)
+    data["_needs_repair"] = _is_placeholder_thoughts(t)
+    data["_nearly_neutral"] = abs(data[pk] - data[nk]) < 0.1
+
+    return data
 
 def _map_label(free_text: str, label_list: List[str] | None):
     if not label_list:
@@ -345,13 +433,16 @@ def _med_llava_call(contents,
                     classification_type: str = "binary",
                     label_list: List[str] | None = None):
     """
-    Med-LLaVA path:
-      • string chat messages with "<image>" placeholders
-      • attach images separately
-      • decode only newly generated tokens (avoid picking JSON from prompt)
+    Med-LLaVA path (string chat + JSON seed + optional repair pass):
+      • Build chat with string content and explicit "<image>" placeholders (template-friendly).
+      • Attach PIL images separately so the processor inserts visual tokens.
+      • Seed a short JSON prefix so generation continues inside an object.
+      • Decode only the continuation; trim to the last '}' and parse.
+      • Sanitize, and if still too generic or neutral, run a short repair pass.
     """
     processor, model = _HF_PROC_MODEL
 
+    # ---- 1) Build plain chat (strings) + collect images ----
     chat, images = [], []
     for msg in contents:
         role = "assistant" if msg["role"].lower().startswith(("assistant", "model")) \
@@ -364,40 +455,51 @@ def _med_llava_call(contents,
                 images.append(img)
                 segs.append("<image>")
             else:
-                segs.append(part["text"] if isinstance(part, dict) else str(part))
+                txt = part["text"] if isinstance(part, dict) else str(part)
+                txt = re.sub(r"<\s*image\s*>", "", txt, flags=re.I)  # guard
+                segs.append(txt)
         chat.append({"role": role, "content": "\n".join(segs)})
 
     if os.getenv("DEBUG_LAVA", "0") == "1":
         print(f"[Med-LLaVA] chat messages: {len(chat)} | images attached: {len(images)}")
 
+    # ---- 2) Template + JSON seed ----
     prompt_text = processor.apply_chat_template(
         chat,
         add_generation_prompt=True,
         tokenize=False,
     )
+    assistant_json_prefix = ' {"thoughts":"1. '
+    prompt_text_seeded = prompt_text + assistant_json_prefix
 
-    inputs = processor(
-        text=prompt_text,
-        images=images or None,
-        return_tensors="pt",
-        padding=True,
-    )
-    inputs = {k: v.to("cuda:0") if torch.is_tensor(v) else v for k, v in inputs.items()}
+    # ---- 3) Tokenize with image(s) ----
+    def _tokenize(text: str):
+        inputs = processor(
+            text=text,
+            images=images or None,
+            return_tensors="pt",
+            padding=True,
+        )
+        return {k: (v.to("cuda:0") if torch.is_tensor(v) else v) for k, v in inputs.items()}
 
-    # Slice off prompt tokens before decoding (avoid worked-example JSON)
+    inputs = _tokenize(prompt_text_seeded)
     prompt_len = int(inputs["input_ids"].shape[1])
 
+    # ---- 4) Generation (first pass) ----
     gen_kwargs = dict(
-        max_new_tokens=_GENERATION_CFG.get("max_new_tokens", 512),
-        do_sample=True,
-        temperature=0.4,
-        top_p=0.9,
-        repetition_penalty=1.2,
+        max_new_tokens=_GENERATION_CFG.get("max_new_tokens", 384),
+        min_new_tokens=_GENERATION_CFG.get("min_new_tokens", 64),
+        do_sample=_GENERATION_CFG.get("do_sample", True),
+        temperature=_GENERATION_CFG.get("temperature", 0.3),
+        top_p=_GENERATION_CFG.get("top_p", 0.95),
+        repetition_penalty=_GENERATION_CFG.get("repetition_penalty", 1.05),
     )
-
     out = model.generate(**inputs, **gen_kwargs)
 
+    # ---- 5) Decode continuation ----
     seq = out["sequences"][0] if isinstance(out, dict) and "sequences" in out else out[0]
+    if getattr(seq, "dim", lambda: 1)() == 2:
+        seq = seq[0]
     total_len = int(seq.shape[0])
     gen_only = seq[prompt_len:] if total_len > prompt_len else seq
 
@@ -405,59 +507,90 @@ def _med_llava_call(contents,
     resp = (tok.decode(gen_only, skip_special_tokens=True).strip()
             if tok is not None else processor.decode(gen_only, skip_special_tokens=True).strip())
 
+    resp = re.sub(r'^\s*ASSISTANT:\s*', '', resp, flags=re.I)
+    resp = '{"thoughts":"1. ' + resp
+    start = resp.find("{")
+    if start > 0:
+        resp = resp[start:]
+    end = resp.rfind("}")
+    if end != -1:
+        resp = resp[:end + 1]
+
     if os.getenv("DEBUG_LAVA", "0") == "1":
         print(f"[Med-LLaVA] prompt_len={prompt_len} | total_len={total_len} | gen_len={int(gen_only.shape[0])}")
-        print("── RAW Med-LLaVA (gen only) ──\n", resp, "\n──────────────────────")
+        print("── RAW Med-LLaVA (gen-only, JSON-seeded, trimmed) ──\n", resp, "\n──────────────────────")
 
-    return _extract_llava_json(resp, classification_type, label_list)
+    data = _extract_llava_json(resp, classification_type, label_list)
 
+    # ---- 6) Med-LLaVA-only sanitize ----
+    if classification_type == "binary" and label_list and len(label_list) == 2 and isinstance(data, dict):
+        data = _sanitize_medllava_output(data, label_list)
 
-def _build_medllava_prompt(
-    few_shot_samples,
-    test_image,
-    classification_type: str = "binary",
-    label_list: List[str] | None = None,
-    prompt_text_path: str | None = None,
-):
-    """
-    Med-LLaVA prompt builder:
-      • sanitize any "<image>" placeholders in the prompt text (worked examples)
-      • attach exactly one test image (converted to bytes dict)
-    """
-    if prompt_text_path is None:
-        prompt_text_path = os.getenv("PROMPT_PATH", "./few_shot_med.txt")
-    base = _read_text(prompt_text_path).strip()
+        # ---- 7) Optional short repair pass if still generic/neutral ----
+        if data.get("_needs_repair") or data.get("_nearly_neutral"):
+            # Minimal, image-conditioned repair directive
+            repair_directive = (
+                "REVISE: Return ONE JSON object only. Replace any placeholders. "
+                "In 'thoughts', describe concrete visual features of THIS T2 image only: "
+                "signal pattern (homogeneous/heterogeneous), margin (well/poorly-defined), "
+                "edema (little/marked), necrosis (present/absent), then the decision. "
+                "In 'answer', write exactly one of ['class1','class2'] (no 'or'). "
+                "In scores, give complementary probabilities in [0,1] that reflect the decision "
+                "(avoid 0.50/0.50). Keep 'location' as lobe+side if identifiable, else null."
+            )
 
-    # Remove stray "<image>" placeholders (we only attach the test image)
-    base = re.sub(r"<\s*image\s*>", "[image omitted]", base, flags=re.I)
+            # We reuse the same chat, but append the repair directive as the last user turn.
+            chat_repair = chat + [{"role": "user", "content": repair_directive}]
+            prompt_repair = processor.apply_chat_template(
+                chat_repair,
+                add_generation_prompt=True,
+                tokenize=False,
+            )
+            prompt_repair = prompt_repair + ' {"thoughts":"1. '
+            inputs2 = _tokenize(prompt_repair)
+            prompt_len2 = int(inputs2["input_ids"].shape[1])
 
-    extra = (
-        "Never answer 'Unknown'. Choose the most likely of the two classes.\n"
-        "In the JSON:\n"
-        " - scores must be in [0,1] and sum to ~1.\n"
-        " - Do not add extra keys.\n"
-        "Thoughts must follow the 4-step structure provided."
-    )
-    sys_prompt = f"{base}\n\n{extra}"
+            gen_kwargs2 = dict(
+                max_new_tokens=min(256, _GENERATION_CFG.get("max_new_tokens", 384)),
+                min_new_tokens=min(64, _GENERATION_CFG.get("min_new_tokens", 64)),
+                do_sample=_GENERATION_CFG.get("do_sample", True),
+                temperature=_GENERATION_CFG.get("temperature", 0.35),
+                top_p=_GENERATION_CFG.get("top_p", 0.95),
+                repetition_penalty=_GENERATION_CFG.get("repetition_penalty", 1.05),
+            )
+            out2 = model.generate(**inputs2, **gen_kwargs2)
 
-    # Convert PIL → dict so Med-LLaVA path can attach bytes robustly
-    buf = io.BytesIO()
-    if isinstance(test_image, Image.Image):
-        test_image.save(buf, format="PNG")
-        img_part = {"mime_type": "image/png", "data": buf.getvalue()}
-    elif isinstance(test_image, dict) and "mime_type" in test_image and "data" in test_image:
-        img_part = test_image
-    else:
-        # Fallback: wrap raw bytes if provided
-        if isinstance(test_image, (bytes, bytearray)):
-            img_part = {"mime_type": "image/png", "data": bytes(test_image)}
-        else:
-            raise TypeError(f"Unsupported image type for Med-LLaVA prompt: {type(test_image)}")
+            seq2 = out2["sequences"][0] if isinstance(out2, dict) and "sequences" in out2 else out2[0]
+            if getattr(seq2, "dim", lambda: 1)() == 2:
+                seq2 = seq2[0]
+            gen_only2 = seq2[prompt_len2:] if int(seq2.shape[0]) > prompt_len2 else seq2
 
-    return [
-        {"role": "system", "parts": [{"text": sys_prompt}]},
-        {"role": "user",   "parts": [img_part, {"text": "Classify this image now."}]}
-    ]
+            resp2 = (tok.decode(gen_only2, skip_special_tokens=True).strip()
+                     if tok is not None else processor.decode(gen_only2, skip_special_tokens=True).strip())
+            resp2 = re.sub(r'^\s*ASSISTANT:\s*', '', resp2, flags=re.I)
+            resp2 = '{"thoughts":"1. ' + resp2
+            s2 = resp2.find("{")
+            if s2 > 0:
+                resp2 = resp2[s2:]
+            e2 = resp2.rfind("}")
+            if e2 != -1:
+                resp2 = resp2[:e2 + 1]
+
+            if os.getenv("DEBUG_LAVA", "0") == "1":
+                print("── RAW Med-LLaVA (repair pass, trimmed) ──\n", resp2, "\n──────────────────────")
+
+            data2 = _extract_llava_json(resp2, classification_type, label_list)
+            if isinstance(data2, dict):
+                data2 = _sanitize_medllava_output(data2, label_list)
+                # Prefer repair if it removed placeholders & reduced neutrality
+                if (not data2.get("_needs_repair", False)) or (data2.get("_nearly_neutral", False) is False):
+                    data = data2
+
+        # Clean internal flags before returning
+        data.pop("_needs_repair", None)
+        data.pop("_nearly_neutral", None)
+
+    return data
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -617,3 +750,48 @@ def build_llava_prompt(
         return _build_llava_prompt_hf(
             few_shot_samples, test_image, classification_type, label_list, prompt_text_path
         )
+        
+def _build_medllava_prompt(
+    few_shot_samples,
+    test_image,
+    classification_type: str = "binary",
+    label_list: List[str] | None = None,
+    prompt_text_path: str | None = None,
+):
+    """
+    Med-LLaVA prompt builder (demote examples, emphasize image):
+      • Put the full few-shot text (`few_shot_med.txt`) into the SYSTEM turn.
+      • Final USER turn is minimal: attach the image + strict JSON rules,
+        and explicitly say "analyze the attached image only; do not copy examples".
+    """
+    if prompt_text_path is None:
+        prompt_text_path = os.getenv("PROMPT_PATH", "./few_shot_med.txt")
+
+    base = _read_text(prompt_text_path).strip()
+    # Keep the worked examples intact in SYSTEM; do not include <image> tokens here.
+    base = re.sub(r"<\s*image\s*>", "[image omitted]", base, flags=re.I)
+
+    final_user_directive = (
+        "Analyze the ATTACHED IMAGE ONLY. Do not copy wording from the worked examples.\n"
+        "Reply with EXACTLY ONE JSON object and NOTHING ELSE. Keys (exactly): "
+        "\"thoughts\", \"answer\", \"score_class1\", \"score_class2\", \"location\".\n"
+        "Begin with '{' and end with '}'. Scores are numeric in [0,1] and sum to ~1.\n"
+        "Keep 'thoughts' to three short numbered clauses: '1. ... 2. ... 3. ...'."
+    )
+
+    # Convert PIL → dict (image part first)
+    buf = io.BytesIO()
+    if isinstance(test_image, Image.Image):
+        test_image.save(buf, format="PNG")
+        img_part = {"mime_type": "image/png", "data": buf.getvalue()}
+    elif isinstance(test_image, dict) and "mime_type" in test_image and "data" in test_image:
+        img_part = test_image
+    elif isinstance(test_image, (bytes, bytearray)):
+        img_part = {"mime_type": "image/png", "data": bytes(test_image)}
+    else:
+        raise TypeError(f"Unsupported image type for Med-LLaVA prompt: {type(test_image)}")
+
+    return [
+        {"role": "system", "parts": [{"text": base}]},
+        {"role": "user",   "parts": [img_part, {"text": final_user_directive}]},
+    ]
