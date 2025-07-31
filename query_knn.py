@@ -1,8 +1,10 @@
 # query_knn.py – build few-shot pool via *query-aware* cosine K-NN
 #                (one mini-batch per test image)
 
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 from PIL import Image
+import os
+import numpy as np
 import torch
 
 from sampler import (
@@ -10,8 +12,19 @@ from sampler import (
     _feat,              # path → embedding (with caching)
     _to_part,           # PIL → Gemini multipart dict
     _canonical,         # label mapping helper
-    CSVDataset,         # simple CSV dataset wrapper
+    CSVDataset,         # simple CSV dataset wrapper (imported in sampler)
 )
+
+# Optional: only needed for radiomics
+try:
+    from radiomics import featureextractor
+    import SimpleITK as sitk
+    _HAS_RAD = True
+except Exception:
+    _HAS_RAD = False
+
+_RAD_EXTRACTOR = None            # lazy-initialized pyradiomics extractor
+_RAD_CACHE: Dict[Tuple[str, Optional[str]], torch.Tensor] = {}  # (img,mask) -> vec
 
 
 def _embed_pil(img: Image.Image, model, device: str) -> torch.Tensor:
@@ -20,6 +33,79 @@ def _embed_pil(img: Image.Image, model, device: str) -> torch.Tensor:
     with torch.no_grad():
         v = model(x).squeeze(0)
     return torch.nn.functional.normalize(v, dim=0).cpu()
+
+def _get_radiomics_extractor(params_yaml: Optional[str], force2D: bool):
+    """
+    Create (once) and return a PyRadiomics extractor configured for 2D PNG slices.
+    """
+    global _RAD_EXTRACTOR
+    if _RAD_EXTRACTOR is None:
+        if not _HAS_RAD:
+            raise ImportError("Install 'pyradiomics' and 'SimpleITK' to use radiomics.")
+        _RAD_EXTRACTOR = (featureextractor.RadiomicsFeatureExtractor(params_yaml)
+                          if params_yaml else featureextractor.RadiomicsFeatureExtractor())
+        _RAD_EXTRACTOR.enableAllImageTypes()
+        _RAD_EXTRACTOR.enableAllFeatures()
+        _RAD_EXTRACTOR.settings['force2D'] = bool(force2D)
+        _RAD_EXTRACTOR.settings['force2Ddimension'] = 0
+    return _RAD_EXTRACTOR
+
+
+def _sitk_from_pil(img: Image.Image) -> "sitk.Image":
+    """Convert PIL → SimpleITK image (grayscale float)."""
+    arr = np.array(img.convert("L"), dtype=np.float32)
+    return sitk.GetImageFromArray(arr)
+
+
+def _radiomics_vec_from_pil(img: Image.Image,
+                            mask_img: Optional[Image.Image],
+                            extractor) -> torch.Tensor:
+    """Extract numeric PyRadiomics features and L2-normalize to a vector.
+    Ensures mask is binary {0,1} so that label=1 is present.
+    """
+    # image as float
+    img_itk = _sitk_from_pil(img)
+
+    # mask → binary {0,1}
+    if mask_img is None:
+        # whole-image ROI
+        mask_arr = np.ones_like(np.array(img.convert("L")), dtype=np.uint8)
+    else:
+        # convert any grayscale mask (0/255 etc.) to {0,1}
+        mask_arr = (np.array(mask_img.convert("L")) > 0).astype(np.uint8)
+
+    # guard against empty mask
+    if mask_arr.sum() == 0:
+        raise ValueError("Radiomics mask is empty after binarization.")
+
+    mask_itk = sitk.GetImageFromArray(mask_arr)
+
+    # IMPORTANT: label must be 1 because mask is {0,1}
+    res = extractor.execute(img_itk, mask_itk, label=1)
+
+    # keep numeric outputs and normalize
+    vals = [float(v) for v in res.values() if isinstance(v, (int, float))]
+    v = torch.tensor(vals, dtype=torch.float32)
+    if v.numel() == 0:
+        v = torch.zeros(1, dtype=torch.float32)
+    return torch.nn.functional.normalize(v, dim=0)
+
+
+def _mask_from_image_path(img_path: str,
+                          rgb_suffix: str,
+                          mask_suffix: str) -> Optional[str]:
+    """
+    Infer mask path from an image path using suffix rule:
+      ..._same_rgb.png  ->  ..._mask.png
+    Falls back to <root> + mask_suffix if the rgb_suffix doesn't match.
+    Returns path only if it exists.
+    """
+    if img_path.endswith(rgb_suffix):
+        cand = img_path[:-len(rgb_suffix)] + mask_suffix
+    else:
+        root, _ = os.path.splitext(img_path)
+        cand = root + mask_suffix
+    return cand if os.path.exists(cand) else None
 
 
 def build_query_knn_samples(
@@ -30,17 +116,73 @@ def build_query_knn_samples(
     num_shots: int,
     embedder_name: str = "vit_base_patch14_dinov2.lvd142m",
     device: str = "cpu",
+    radiomics_cfg: dict | None = None,   # NEW: radiomics settings
 ) -> Dict[str, List[Tuple[Dict, str]]]:
     """
     For the given *query_img* return, per label, the `num_shots`
     most-similar training images (cosine similarity in feature space).
+
+    Two backends:
+      • embedder_name != "radiomics" → CNN/ViT (e.g., DINOv2 via timm)
+      • embedder_name == "radiomics" → PyRadiomics features (with mask suffix)
     """
 
-    # 1) backbone + query embedding
+    # ─────────────────────────────────────────────────────────────
+    # Radiomics path (suffix-based masks)
+    # ─────────────────────────────────────────────────────────────
+    if embedder_name.lower() == "radiomics":
+        rcfg = radiomics_cfg or {}   # ← fixed: radiomics_cfg (with 'o')
+        extractor = _get_radiomics_extractor(
+            rcfg.get("params_yaml"),
+            rcfg.get("force2D", True),
+        )
+        rgb_suffix         = rcfg.get("rgb_suffix", "_same_rgb.png")
+        mask_suffix        = rcfg.get("mask_suffix", "_mask.png")
+        require_mask       = bool(rcfg.get("require_mask", True))
+        whole_img_fallback = bool(rcfg.get("whole_image_fallback", False))
+
+        # 1) query embedding (no mask at test time)
+        q_feat = _radiomics_vec_from_pil(query_img, None, extractor)
+
+        # 2) load & embed training set with masks inferred by suffix
+        ds = CSVDataset(train_csv, transform=None)
+        pools: Dict[str, List[str]] = {lbl: [] for lbl in label_list}
+        feats: Dict[str, List[torch.Tensor]] = {lbl: [] for lbl in label_list}
+
+        for _, path, raw_lbl in ds:
+            lbl = _canonical(raw_lbl, classification_type)
+            if lbl not in label_list:
+                continue
+
+            mask_path = _mask_from_image_path(path, rgb_suffix, mask_suffix)
+            if mask_path is None and require_mask and not whole_img_fallback:
+                raise FileNotFoundError(f"[radiomics] Mask not found for: {path}")
+
+            key = (path, mask_path if (mask_path and os.path.exists(mask_path)) else None)
+            if key not in _RAD_CACHE:
+                img = Image.open(path).convert("RGB")
+                mask_img = Image.open(mask_path).convert("L") if key[1] else None
+                _RAD_CACHE[key] = _radiomics_vec_from_pil(img, mask_img, extractor)
+
+            pools[lbl].append(path)
+            feats[lbl].append(_RAD_CACHE[key])
+
+        # 3) per-label top-k w.r.t. query
+        few: Dict[str, List[Tuple[Dict, str]]] = {}
+        for lbl in label_list:
+            f_stack = torch.stack(feats[lbl])            # (N,D)
+            sims    = torch.mv(f_stack, q_feat)          # (N,)
+            idx_top = sims.topk(num_shots).indices.tolist()
+            paths   = [pools[lbl][i] for i in idx_top]
+            few[lbl] = [(_to_part(Image.open(p).convert("RGB")), p) for p in paths]
+        return few
+
+    # ─────────────────────────────────────────────────────────────
+    # CNN/ViT path (DINOv2 etc.) — unchanged
+    # ─────────────────────────────────────────────────────────────
     model  = _embedder(embedder_name, device)
     q_feat = _embed_pil(query_img, model, device)
 
-    # 2) load & embed the training pool (cached across calls via _feat)
     ds     = CSVDataset(train_csv, transform=None)
     pools  = {lbl: [] for lbl in label_list}
     feats  = {lbl: [] for lbl in label_list}
@@ -51,7 +193,6 @@ def build_query_knn_samples(
             pools[lbl].append(path)
             feats[lbl].append(_feat(path, model, device))
 
-    # 3) pick top-k neighbours for each label
     few: Dict[str, List[Tuple[Dict, str]]] = {}
     for lbl in label_list:
         f_stack = torch.stack(feats[lbl])              # (N,D)

@@ -1,0 +1,24 @@
+# configs/radiomics/params.yaml
+
+imageType:
+  Original: {}
+  LoG:
+    sigma: [1.0, 2.0]
+  Wavelet: {}
+
+featureClass:
+  firstorder: []
+  glcm: []
+  glrlm: []
+  glszm: []
+  gldm: []
+  ngtdm: []
+
+setting:
+  binWidth: 25
+  normalize: true
+  normalizeScale: 100
+  interpolator: sitkBSpline
+  resampledPixelSpacing: [1, 1]
+  force2D: true
+  force2Ddimension: 0

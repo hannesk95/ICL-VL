@@ -84,16 +84,28 @@ def main() -> None:
     # -------------------------------------------------------------- #
     strategy = config["sampling"]["strategy"].lower()
 
-    if strategy == "knn":
+    # We support three strategies:
+    #   • "random"       → prebuilt static pool (unchanged)
+    #   • "knn"|"knn_dino"  → query-aware KNN using CNN/ViT (DINOv2)
+    #   • "knn_radiomics"   → query-aware KNN using PyRadiomics + masks via suffix
+    if strategy in ("knn", "knn_dino", "knn_radiomics"):
+        # Choose feature backend by strategy
+        if strategy == "knn_radiomics":
+            embedder_name = "radiomics"  # signals the radiomics path
+        else:
+            embedder_name = config["sampling"].get("embedder", "resnet50")
+
         few_shot_provider = partial(
             build_query_knn_samples,
             train_csv=config["data"]["train_csv"],
             classification_type=classification_type,
             label_list=label_list,
             num_shots=config["data"]["num_shots"],
-            embedder_name=config["sampling"]["embedder"],
-            device=config["sampling"]["device"],
+            embedder_name=embedder_name,
+            device=config["sampling"].get("device", "cpu"),
+            radiomics_cfg=config["sampling"].get("radiomics", {}),  # <- NEW
         )
+
     else:
         static_few_shot = build_few_shot_samples(
             config=config,
