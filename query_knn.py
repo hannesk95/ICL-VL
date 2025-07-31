@@ -36,18 +36,34 @@ def _embed_pil(img: Image.Image, model, device: str) -> torch.Tensor:
 
 def _get_radiomics_extractor(params_yaml: Optional[str], force2D: bool):
     """
-    Create (once) and return a PyRadiomics extractor configured for 2D PNG slices.
+    Build a PyRadiomics extractor. We rely on the params YAML to select
+    image types and features (no 'enableAll*' calls to avoid noisy logs).
     """
     global _RAD_EXTRACTOR
     if _RAD_EXTRACTOR is None:
         if not _HAS_RAD:
             raise ImportError("Install 'pyradiomics' and 'SimpleITK' to use radiomics.")
-        _RAD_EXTRACTOR = (featureextractor.RadiomicsFeatureExtractor(params_yaml)
-                          if params_yaml else featureextractor.RadiomicsFeatureExtractor())
-        _RAD_EXTRACTOR.enableAllImageTypes()
-        _RAD_EXTRACTOR.enableAllFeatures()
+
+        params_path = None
+        if params_yaml:
+            cand = os.path.expanduser(params_yaml)
+            if not os.path.isabs(cand):
+                cand = os.path.normpath(os.path.join(os.getcwd(), cand))
+            params_path = cand if os.path.isfile(cand) else None
+            if params_yaml and not params_path:
+                print(f"[radiomics] WARNING: params file not found: {params_yaml} "
+                      f"(resolved: {cand}); using PyRadiomics defaults.")
+
+        _RAD_EXTRACTOR = (featureextractor.RadiomicsFeatureExtractor(params_path)
+                          if params_path else featureextractor.RadiomicsFeatureExtractor())
+
+        # enforce 2D behavior for PNG slices
         _RAD_EXTRACTOR.settings['force2D'] = bool(force2D)
         _RAD_EXTRACTOR.settings['force2Ddimension'] = 0
+
+        # Optional: quiet the radiomics logger
+        import logging
+        logging.getLogger("radiomics").setLevel(logging.ERROR)
     return _RAD_EXTRACTOR
 
 
@@ -117,21 +133,20 @@ def build_query_knn_samples(
     embedder_name: str = "vit_base_patch14_dinov2.lvd142m",
     device: str = "cpu",
     radiomics_cfg: dict | None = None,   # NEW: radiomics settings
+    query_path: Optional[str] = None,    # NEW: to infer query mask
 ) -> Dict[str, List[Tuple[Dict, str]]]:
     """
-    For the given *query_img* return, per label, the `num_shots`
-    most-similar training images (cosine similarity in feature space).
+    Return, per label, the `num_shots` most-similar training images
+    (cosine similarity on L2-normalized features).
 
-    Two backends:
-      • embedder_name != "radiomics" → CNN/ViT (e.g., DINOv2 via timm)
-      • embedder_name == "radiomics" → PyRadiomics features (with mask suffix)
+    Backends:
+      • embedder_name == "radiomics" → PyRadiomics features (masked)
+      • otherwise                   → CNN/ViT embeddings (e.g., DINOv2)
     """
 
-    # ─────────────────────────────────────────────────────────────
-    # Radiomics path (suffix-based masks)
-    # ─────────────────────────────────────────────────────────────
+    # ───────── Radiomics path ─────────
     if embedder_name.lower() == "radiomics":
-        rcfg = radiomics_cfg or {}   # ← fixed: radiomics_cfg (with 'o')
+        rcfg = radiomics_cfg or {}
         extractor = _get_radiomics_extractor(
             rcfg.get("params_yaml"),
             rcfg.get("force2D", True),
@@ -141,10 +156,18 @@ def build_query_knn_samples(
         require_mask       = bool(rcfg.get("require_mask", True))
         whole_img_fallback = bool(rcfg.get("whole_image_fallback", False))
 
-        # 1) query embedding (no mask at test time)
-        q_feat = _radiomics_vec_from_pil(query_img, None, extractor)
+        # 1) Query feature (use mask if we can infer it by suffix)
+        q_mask_img = None
+        if query_path:
+            q_mask_path = _mask_from_image_path(query_path, rgb_suffix, mask_suffix)
+            if q_mask_path and os.path.exists(q_mask_path):
+                q_mask_img = Image.open(q_mask_path).convert("L")
+            elif require_mask and not whole_img_fallback:
+                raise FileNotFoundError(f"[radiomics] Query mask not found for: {query_path}")
 
-        # 2) load & embed training set with masks inferred by suffix
+        q_feat = _radiomics_vec_from_pil(query_img, q_mask_img, extractor)
+
+        # 2) Train pool (masked)
         ds = CSVDataset(train_csv, transform=None)
         pools: Dict[str, List[str]] = {lbl: [] for lbl in label_list}
         feats: Dict[str, List[torch.Tensor]] = {lbl: [] for lbl in label_list}
@@ -167,7 +190,7 @@ def build_query_knn_samples(
             pools[lbl].append(path)
             feats[lbl].append(_RAD_CACHE[key])
 
-        # 3) per-label top-k w.r.t. query
+        # 3) Top-k per label
         few: Dict[str, List[Tuple[Dict, str]]] = {}
         for lbl in label_list:
             f_stack = torch.stack(feats[lbl])            # (N,D)
@@ -177,9 +200,7 @@ def build_query_knn_samples(
             few[lbl] = [(_to_part(Image.open(p).convert("RGB")), p) for p in paths]
         return few
 
-    # ─────────────────────────────────────────────────────────────
-    # CNN/ViT path (DINOv2 etc.) — unchanged
-    # ─────────────────────────────────────────────────────────────
+    # ───────── CNN/ViT path (DINOv2 etc.) ─────────
     model  = _embedder(embedder_name, device)
     q_feat = _embed_pil(query_img, model, device)
 

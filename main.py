@@ -129,7 +129,7 @@ def main() -> None:
         print(f"\n[IMAGE {i}/{len(test_loader.dataset)}] {img_path}")
 
         pil_img = T.ToPILImage()(img_tensor.squeeze(0))
-        few_shot_samples = few_shot_provider(query_img=pil_img)
+        few_shot_samples = few_shot_provider(query_img=pil_img, query_path=img_path)
 
         if verbose and strategy == "knn":
             print("  Few-shot selection:")
