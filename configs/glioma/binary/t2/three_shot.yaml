@@ -6,7 +6,7 @@ data:
   train_csv: "data/glioma/binary/t2/glioma_dataset.csv"
   test_csv: "data/glioma/binary/t2/glioma_test_dataset.csv"
   save_path: ./results/${project}/${modality}/${model}/${classification_type}/${sampling_strategy}/${mode}/
-  num_shots: 7
+  num_shots: 9
   batch_size: 1
   randomize_few_shot: false
   seed: 2
