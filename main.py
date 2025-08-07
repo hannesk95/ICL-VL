@@ -33,13 +33,47 @@ from query_knn import build_query_knn_samples
 
 
 def main() -> None:
+    """
+    Adds two optional CLI flags so an external wrapper can control
+    randomness without touching the YAML:
+
+        --config PATH   (YAML file; keeps old default if omitted)
+        --seed  INT     (overrides data.seed & data.test_seed)
+
+    If you run `python main.py` exactly like before, behaviour is *identical*.
+    """
+    import argparse, copy
+    from dotenv import load_dotenv
+
+    parser = argparse.ArgumentParser(description="Unified VLM pipeline")
+    parser.add_argument(
+        "--config",
+        default="configs/glioma/binary/t2/three_shot.yaml",
+        help="YAML config to use (unchanged default)",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Optional global seed override (used by bootstrap.py)",
+    )
+    args = parser.parse_args()
+
     # 1. Load YAML config & env vars
-    # -------------------------------------------------------------- #
+    # ------------------------------------------------------------------
     load_dotenv()
-    config = load_config("configs/glioma/binary/t2/three_shot.yaml")
+    config = load_config(args.config)
 
+    # Optional seed override – lets bootstrap replicate runs
+    if args.seed is not None:
+        cfg = copy.deepcopy(config)
+        cfg["data"]["seed"] = args.seed
+        cfg["data"]["test_seed"] = args.seed
+        config = cfg
+
+    # ↓↓↓ everything from here on is **unchanged original code** ↓↓↓
+    # ------------------------------------------------------------------
     verbose = config["user_args"].get("verbose", False)
-
     test_csv  = config["data"]["test_csv"]
     save_path = config["data"]["save_path"]
 

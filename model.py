@@ -37,7 +37,7 @@ _HF_PROC_MODEL: Tuple[Any, Any] | None = None
 _MODEL_NAME = "gemini-2.0-flash"
 
 # Gemini token bucket
-_MAX_CALLS, _PERIOD = 16, 80.0
+_MAX_CALLS, _PERIOD = 15, 90.0
 _CALLS: deque[float] = deque()
 _LOCK = Lock()
 RL_VERBOSE = bool(os.getenv("RL_VERBOSE", "1"))
@@ -259,33 +259,107 @@ def _attempt_json_fix(text: str) -> Dict[str, Any] | None:
 
 def _repair_binary_output(data: Dict[str, Any],
                           label_list: List[str]) -> Dict[str, Any]:
+    """
+    Ensure binary outputs have valid scores and a consistent answer.
+    Now robust to missing or null scores (None, '', etc.).
+    """
+    def _to_f(x, default: float = -1.0) -> float:
+        try:
+            # treat None, '', 'null', etc. as missing
+            if x in (None, "", "null"):
+                raise ValueError
+            return float(x)
+        except Exception:
+            return default
+
     pos, neg = label_list
     pk, nk = f"score_{_snake(pos)}", f"score_{_snake(neg)}"
 
-    s_pos = float(data.get(pk, -1))
-    s_neg = float(data.get(nk, -1))
+    s_pos = _to_f(data.get(pk, -1))
+    s_neg = _to_f(data.get(nk, -1))
+
+    # If either score is still invalid, complement or default to 0.5
     if not (0.0 <= s_pos <= 1.0) or not (0.0 <= s_neg <= 1.0):
-        if 0 <= s_pos <= 1 and s_neg == -1:
-            s_neg = 1 - s_pos
-        elif 0 <= s_neg <= 1 and s_pos == -1:
-            s_pos = 1 - s_neg
+        if 0.0 <= s_pos <= 1.0 and not (0.0 <= s_neg <= 1.0):
+            s_neg = 1.0 - s_pos
+        elif 0.0 <= s_neg <= 1.0 and not (0.0 <= s_pos <= 1.0):
+            s_pos = 1.0 - s_neg
         else:
-            s_pos = 0.5
-            s_neg = 0.5
+            s_pos = s_neg = 0.5
+
+    # normalise just in case
     tot = s_pos + s_neg
     if tot > 0:
         s_pos, s_neg = s_pos / tot, s_neg / tot
 
     data[pk], data[nk] = round(s_pos, 4), round(s_neg, 4)
 
-    ans = data.get("answer", "")
-    if ans not in label_list:
+    # ensure 'answer'
+    ans = str(data.get("answer", "")).strip().lower()
+    if ans not in (pos.lower(), neg.lower()):
         data["answer"] = pos if s_pos >= s_neg else neg
 
     data.setdefault("thoughts", "")
     data.setdefault("location", None)
     return data
 
+def _sanitize_llava_hf_output(data: Dict[str, Any], label_list: List[str]) -> Dict[str, Any]:
+    """
+    LLaVA-HF specific cleanup (modality-agnostic), conservative:
+      • Detect placeholder 'thoughts' like '1. 2. 3.'.
+      • Keep user's content if present; don't overwrite with a fixed string.
+      • Ensure scores complement to ~1 and the chosen class is consistent.
+      • Mark internal flags `_needs_repair` and `_nearly_neutral` for the caller.
+    """
+    def _is_placeholder(t: str) -> bool:
+        t = (t or "").strip()
+        if not t:
+            return True
+        if re.fullmatch(r"\s*1\.\s*2\.\s*3\.\s*", t):
+            return True
+        # too short after removing digits & punctuation
+        core = re.sub(r"[0-9\.\-\s]+", "", t)
+        return len(core) < 6
+
+    def _to_f(x, d=-1.0):
+        try: return float(x)
+        except Exception: return d
+
+    pos, neg = label_list
+    pk, nk = f"score_{_snake(pos)}", f"score_{_snake(neg)}"
+
+    # Normalize/repair scores
+    sp, sn = _to_f(data.get(pk, -1)), _to_f(data.get(nk, -1))
+    if not (0.0 <= sp <= 1.0) or not (0.0 <= sn <= 1.0):
+        if 0.0 <= sp <= 1.0 and not (0.0 <= sn <= 1.0):
+            sn = 1.0 - sp
+        elif 0.0 <= sn <= 1.0 and not (0.0 <= sp <= 1.0):
+            sp = 1.0 - sn
+        else:
+            sp, sn = 0.5, 0.5
+    tot = sp + sn
+    if tot > 0:
+        sp, sn = sp / tot, sn / tot
+    data[pk], data[nk] = round(sp, 4), round(sn, 4)
+
+    # Ensure answer consistent with scores if missing/invalid
+    ans = str(data.get("answer", "")).strip()
+    if ans.lower() not in (pos.lower(), neg.lower()):
+        ans = pos if sp >= sn else neg
+        data["answer"] = ans
+
+    # Thoughts / placeholder detection
+    t = str(data.get("thoughts", "")).strip()
+    placeholder = _is_placeholder(t)
+    data["_needs_repair"] = placeholder
+    data["_nearly_neutral"] = abs(sp - sn) < 0.1 or max(sp, sn) < 0.60
+
+    # Location normalization
+    loc = data.get("location", None)
+    if isinstance(loc, str) and loc.strip().lower() in ("example region", "brain", "head", "skull", "unknown", ""):
+        data["location"] = None
+
+    return data
 
 def _extract_llava_json(resp: str,
                         classification_type: str,
@@ -324,57 +398,167 @@ def _llava_hf_call_hf(contents,
                       classification_type: str = "binary",
                       label_list: List[str] | None = None):
     """
-    ORIGINAL LLaVA-HF path (as in your old file). Uses multimodal parts,
-    decodes the full sequence, and keeps the tail after the last 'ASSISTANT:'.
+    LLaVA-HF path with JSON seeding + config-driven generation.
+    Adds an optional one-shot "repair" pass if the first output is placeholder or too neutral.
+    Toggle repair via env: LLAVA_REPAIR_PASS=0 to disable (default: enabled).
     """
     processor, model = _HF_PROC_MODEL
 
+    # ---- Build chat + collect images ----
     chat, images = [], []
     for msg in contents:
         role = msg["role"].lower()
         parts = []
         for part in msg["parts"]:
-            if isinstance(part, dict) and "mime_type" in part:
+            # Image cases
+            if isinstance(part, dict) and "mime_type" in part and "data" in part:
                 img = Image.open(io.BytesIO(part["data"])).convert("RGB")
                 images.append(img)
                 parts.append({"type": "image"})
+            elif isinstance(part, Image.Image):
+                images.append(part.convert("RGB"))
+                parts.append({"type": "image"})
+            elif isinstance(part, (bytes, bytearray)):
+                img = Image.open(io.BytesIO(part)).convert("RGB")
+                images.append(img)
+                parts.append({"type": "image"})
             else:
-                txt = part["text"] if isinstance(part, dict) else str(part)
-                txt = txt.replace("<image>", "[IMG]")  # neutralize if present in text
+                # Text case
+                txt = part["text"] if isinstance(part, dict) and "text" in part else str(part)
+                txt = txt.replace("<image>", "[IMG]")  # neutralize accidental tokens
                 parts.append({"type": "text", "text": txt})
         chat.append({"role": role, "content": parts})
 
     if os.getenv("DEBUG_LAVA", "0") == "1":
         print(f"[LLaVA-HF] chat messages: {len(chat)} | images attached: {len(images)}")
 
+    # ---- Template + JSON seed (start generation inside an object) ----
     prompt_text = processor.apply_chat_template(
-        chat,
-        add_generation_prompt=True,
-        tokenize=False,
+        chat, add_generation_prompt=True, tokenize=False,
     )
+    # IMPORTANT: do NOT bias with "1. " — let the model produce clause 1 itself.
+    assistant_json_prefix = ' {"thoughts":"'
+    prompt_text_seeded = prompt_text + assistant_json_prefix
 
+    # ---- Tokenize (with images) ----
     inputs = processor(
-        text=prompt_text,
+        text=prompt_text_seeded,
         images=images or None,
         return_tensors="pt",
         padding=True,
     )
-    inputs = {k: v.to("cuda:0") if torch.is_tensor(v) else v for k, v in inputs.items()}
+    inputs = {k: (v.to("cuda:0") if torch.is_tensor(v) else v) for k, v in inputs.items()}
+    prompt_len = int(inputs["input_ids"].shape[1])
 
+    # ---- Generation (use model_kwargs if provided) ----
     gen_kwargs = dict(
-        max_new_tokens=_GENERATION_CFG.get("max_new_tokens", 512),
-        do_sample=True,
-        temperature=0.4,
-        top_p=0.9,
-        repetition_penalty=1.2,
+        max_new_tokens=_GENERATION_CFG.get("max_new_tokens", 384),
+        min_new_tokens=_GENERATION_CFG.get("min_new_tokens", 64),
+        do_sample=_GENERATION_CFG.get("do_sample", True),
+        temperature=_GENERATION_CFG.get("temperature", 0.35),
+        top_p=_GENERATION_CFG.get("top_p", 0.95),
+        repetition_penalty=_GENERATION_CFG.get("repetition_penalty", 1.10),
     )
-
     out = model.generate(**inputs, **gen_kwargs)
-    resp = processor.decode(out[0], skip_special_tokens=True).strip()
+
+    # ---- Decode only the continuation, trim to last '}' ----
+    seq = out["sequences"][0] if isinstance(out, dict) and "sequences" in out else out[0]
+    if getattr(seq, "dim", lambda: 1)() == 2:
+        seq = seq[0]
+    total_len = int(seq.shape[0])
+    gen_only = seq[prompt_len:] if total_len > prompt_len else seq
+
+    tok = getattr(processor, "tokenizer", None)
+    resp = (tok.decode(gen_only, skip_special_tokens=True).strip()
+            if tok is not None else processor.decode(gen_only, skip_special_tokens=True).strip())
+    resp = re.sub(r'^\s*ASSISTANT:\s*', '', resp, flags=re.I)
+
+    # Reconstruct a well-formed JSON block
+    resp = '{"thoughts":"' + resp
+    start = resp.find("{")
+    if start > 0:
+        resp = resp[start:]
+    end = resp.rfind("}")
+    if end != -1:
+        resp = resp[:end + 1]
+
     if os.getenv("DEBUG_LAVA", "0") == "1":
-        print("── RAW LLaVA-HF ──\n", resp, "\n──────────────────")
-    resp = resp.split("ASSISTANT:")[-1].strip()
-    return _extract_llava_json(resp, classification_type, label_list)
+        print("── RAW LLaVA-HF (JSON-seeded, trimmed) ──\n", resp, "\n──────────────────")
+
+    data = _extract_llava_json(resp, classification_type, label_list)
+
+    # Sanitize and decide on repair
+    if classification_type == "binary" and label_list and len(label_list) == 2:
+        data = _sanitize_llava_hf_output(data, label_list)
+
+        needs_repair = bool(data.get("_needs_repair")) or bool(data.get("_nearly_neutral"))
+        if needs_repair and os.getenv("LLAVA_REPAIR_PASS", "1") != "0":
+            # Minimal, image-conditioned repair directive
+            repair_directive = (
+                "REVISE: Return ONE JSON object only. Replace placeholders. "
+                "In 'thoughts', give three short clauses specific to THIS image: "
+                "(1) signal pattern (homogeneous/heterogeneous), "
+                "(2) margin (well/poorly-defined), "
+                "(3) edema/necrosis (little/marked / present/absent), then the decision. "
+                "In 'answer', write exactly one of ['class1','class2'] (no 'or'). "
+                "Give complementary scores in [0,1] reflecting the decision (avoid 0.50/0.50). "
+                "Use 'location' as lobe+side if identifiable, else null."
+            )
+            chat_repair = chat + [{"role": "user", "content": [{"type": "text", "text": repair_directive}]}]
+            prompt_repair = processor.apply_chat_template(
+                chat_repair, add_generation_prompt=True, tokenize=False,
+            )
+            prompt_repair = prompt_repair + ' {"thoughts":"'
+            inputs2 = processor(
+                text=prompt_repair,
+                images=images or None,
+                return_tensors="pt",
+                padding=True,
+            )
+            inputs2 = {k: (v.to("cuda:0") if torch.is_tensor(v) else v) for k, v in inputs2.items()}
+            prompt_len2 = int(inputs2["input_ids"].shape[1])
+
+            gen_kwargs2 = dict(
+                max_new_tokens=min(256, _GENERATION_CFG.get("max_new_tokens", 384)),
+                min_new_tokens=min(64, _GENERATION_CFG.get("min_new_tokens", 64)),
+                do_sample=_GENERATION_CFG.get("do_sample", True),
+                temperature=_GENERATION_CFG.get("temperature", 0.4),
+                top_p=_GENERATION_CFG.get("top_p", 0.95),
+                repetition_penalty=_GENERATION_CFG.get("repetition_penalty", 1.08),
+            )
+            out2 = model.generate(**inputs2, **gen_kwargs2)
+
+            seq2 = out2["sequences"][0] if isinstance(out2, dict) and "sequences" in out2 else out2[0]
+            if getattr(seq2, "dim", lambda: 1)() == 2:
+                seq2 = seq2[0]
+            gen_only2 = seq2[prompt_len2:] if int(seq2.shape[0]) > prompt_len2 else seq2
+
+            resp2 = (tok.decode(gen_only2, skip_special_tokens=True).strip()
+                     if tok is not None else processor.decode(gen_only2, skip_special_tokens=True).strip())
+            resp2 = re.sub(r'^\s*ASSISTANT:\s*', '', resp2, flags=re.I)
+            resp2 = '{"thoughts":"' + resp2
+            s2 = resp2.find("{")
+            if s2 > 0:
+                resp2 = resp2[s2:]
+            e2 = resp2.rfind("}")
+            if e2 != -1:
+                resp2 = resp2[:e2 + 1]
+
+            if os.getenv("DEBUG_LAVA", "0") == "1":
+                print("── RAW LLaVA-HF (repair pass, trimmed) ──\n", resp2, "\n──────────────────")
+
+            data2 = _extract_llava_json(resp2, classification_type, label_list)
+            if isinstance(data2, dict):
+                data2 = _sanitize_llava_hf_output(data2, label_list)
+                # Prefer repair if it removed placeholders / reduced neutrality
+                if (not data2.get("_needs_repair", False)) or (data2.get("_nearly_neutral", False) is False):
+                    data = data2
+
+        # Clean internal flags before returning
+        data.pop("_needs_repair", None)
+        data.pop("_nearly_neutral", None)
+
+    return data
 
 
 def _build_llava_prompt_hf(
@@ -385,26 +569,90 @@ def _build_llava_prompt_hf(
     prompt_text_path: str | None = None,
 ):
     """
-    ORIGINAL prompt builder for LLaVA-HF (exactly like your old version).
-    Do NOT wrap the image; pass it through as-is.
+    LLaVA-HF prompt builder (modality-agnostic):
+      • System contains your modality-specific instructions loaded from the prompt file.
+      • Few-shot: USER = image; ASSISTANT = minimal natural-language label (no JSON, no modality terms).
+      • Insert a neutral ASSISTANT buffer after examples to reduce recency bias.
+      • Final USER demands strict JSON; constraints are generic (no T2/T1c/FLAIR words).
+      • K per class capped by env LLAVA_K_PER_CLASS (default 1).
     """
     if prompt_text_path is None:
         prompt_text_path = os.getenv("PROMPT_PATH", "./prompts/few_shot_llava.txt")
     base = _read_text(prompt_text_path).strip()
 
+    # Strip literal role headers if present in the file (keep content only).
+    base = re.sub(r'^\s*SYSTEM:\s*', '', base, flags=re.I)
+    base = re.sub(r'(?mi)^\s*(USER|ASSISTANT)\s*:\s*', '', base)
+
     extra = (
         "Never answer 'Unknown'. Choose the most likely of the two classes.\n"
-        "In the JSON:\n"
-        " - scores must be in [0,1] and sum to ~1.\n"
-        " - Do not add extra keys.\n"
-        "Thoughts must follow the 4-step structure provided."
+        "For the TEST image ONLY, reply with EXACTLY ONE JSON object and NOTHING ELSE. Keys (exact): "
+        "\"thoughts\", \"answer\", \"score_class1\", \"score_class2\", \"location\".\n"
+        "In 'thoughts', write three short clauses describing THIS image's (1) signal pattern "
+        "(e.g., homogeneous/heterogeneous or enhancement pattern), (2) margin (well/poorly defined), "
+        "(3) edema/necrosis or relevant modality-specific cue from the system prompt. "
+        "Do NOT write placeholders like '1. 2. 3.'; each clause must contain meaningful words.\n"
+        "Scores must be numeric in [0,1] and sum to ~1. If you answer 'class1' then score_class1 ≥ 0.60; "
+        "if you answer 'class2' then score_class2 ≥ 0.60. Set 'location' as lobe+side if identifiable, else null."
     )
     sys_prompt = f"{base}\n\n{extra}"
 
-    return [
-        {"role": "system", "parts": [{"text": sys_prompt}]},
-        {"role": "user",   "parts": [test_image, {"text": "Classify this image now."}]}
-    ]
+    chat = [{"role": "system", "parts": [{"text": sys_prompt}]}]
+
+    # Cap few-shot via env (default 1)
+    k_cap = max(0, int(os.getenv("LLAVA_K_PER_CLASS", "1")))
+
+    if classification_type == "binary" and label_list and len(label_list) == 2 and k_cap > 0:
+        pos_lbl, neg_lbl = label_list
+        pos_items = (few_shot_samples.get(pos_lbl, []) or [])[:k_cap]
+        neg_items = (few_shot_samples.get(neg_lbl, []) or [])[:k_cap]
+        max_len = max(len(pos_items), len(neg_items))
+
+        for i in range(max_len):
+            if i < len(pos_items):
+                img_part, _ = pos_items[i]
+                chat.append({
+                    "role": "user",
+                    "parts": [img_part, {"text": f"[Example {i+1} – {pos_lbl}] Classify this image."}],
+                })
+                chat.append({
+                    "role": "assistant",
+                    "parts": [{"text": f"Answer: {pos_lbl} (homogeneous signal, sharp margin, little edema, no necrosis)."}],
+                })
+            if i < len(neg_items):
+                img_part, _ = neg_items[i]
+                chat.append({
+                    "role": "user",
+                    "parts": [img_part, {"text": f"[Example {i+1} – {neg_lbl}] Classify this image."}],
+                })
+                chat.append({
+                    "role": "assistant",
+                    "parts": [{"text": f"Answer: {neg_lbl} (heterogeneous signal, ill-defined margin, marked edema, central necrosis)."}],
+                })
+
+        # Neutral buffer to reduce label recency before the test image
+        chat.append({"role": "assistant", "parts": [{"text": "Acknowledged. Waiting for the test image."}]})
+
+    # Final test turn
+    buf = io.BytesIO()
+    if isinstance(test_image, Image.Image):
+        test_image.save(buf, format="PNG")
+        img_part = {"mime_type": "image/png", "data": buf.getvalue()}
+    elif isinstance(test_image, dict) and "mime_type" in test_image and "data" in test_image:
+        img_part = test_image
+    elif isinstance(test_image, (bytes, bytearray)):
+        img_part = {"mime_type": "image/png", "data": bytes(test_image)}
+    else:
+        raise TypeError(f"Unsupported image type for LLaVA-HF prompt: {type(test_image)}")
+
+    final_directive = (
+        "TEST IMAGE → Analyze the ATTACHED IMAGE ONLY and return ONE JSON object with the required keys. "
+        "Begin with '{' and end with '}'. Do NOT copy phrases from examples. "
+        "If you choose 'class1', set score_class1 ≥ 0.60; if 'class2', set score_class2 ≥ 0.60."
+    )
+    chat.append({"role": "user", "parts": [img_part, {"text": final_directive}]})
+
+    return chat
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -469,7 +717,7 @@ def _med_llava_call(contents,
         add_generation_prompt=True,
         tokenize=False,
     )
-    assistant_json_prefix = ' {"thoughts":"1. '
+    assistant_json_prefix = ' {"thoughts":"'
     prompt_text_seeded = prompt_text + assistant_json_prefix
 
     # ---- 3) Tokenize with image(s) ----

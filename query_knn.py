@@ -20,7 +20,8 @@ try:
     from radiomics import featureextractor
     import SimpleITK as sitk
     _HAS_RAD = True
-except Exception:
+except Exception as e:
+    print(f"[DEBUG] Radiomics import failed: {e}")
     _HAS_RAD = False
 
 _RAD_EXTRACTOR = None            # lazy-initialized pyradiomics extractor
